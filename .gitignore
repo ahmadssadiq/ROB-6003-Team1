@@ -1,0 +1,4 @@
+.conda/
+.conda-pkgs/
+__pycache__/
+*.pyc

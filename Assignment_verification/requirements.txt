@@ -1,0 +1,3 @@
+numpy
+scipy
+yourdfpy==0.0.60

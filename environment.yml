@@ -1,0 +1,7 @@
+name: s101-arm
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy=1.26.4
+  - scipy=1.11.4

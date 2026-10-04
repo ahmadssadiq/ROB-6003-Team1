@@ -1,0 +1,28 @@
+REFERENCE: TheRobotStudio SO-101 URDF; independent yourdfpy FK
+CANDIDATE mapping: q_urdf = signs * q_assignment + offsets (radians)
+Signs: [-1.0, 1.0, 1.0, 1.0, -1.0]
+Offsets in degrees: [0.0, 62.067656, -149.860164, -2.207492, 0.0]
+Mapping derives model zero conventions; physical motor zeros are not verified.
+Base comparison: assignment FK uses base_position=(0,0,0), psi=0.
+On-axis reference tool: gripper_link point (0,0,-0.0981) metres.
+Official TCP differs from this point: its error is NOT a same-point FK error.
+
+UNALIGNED zero-angle diagnostic: 298.258 mm, 90.033 deg (not a verdict)
+
+Case                       same point mm   rotation deg   other TCP mm
+urdf_zero                       0.218186       0.000556       7.926195
+shoulder_pan_30deg              0.201472       0.000569       7.926576
+shoulder_lift_30deg             0.213878       0.000681       7.908893
+elbow_flex_30deg                0.223174       0.000681       7.909142
+wrist_flex_30deg                0.218389       0.000681       7.859308
+wrist_roll_30deg                0.218186       0.000404       8.010972
+mixed                           0.219081       0.000284       8.084081
+
+57 cases: same-point error mean=0.210687, max=0.246103 mm
+Orientation error max=0.001108 deg
+Different official TCP distance range=7.679837..8.130649 mm
+Within stated 0.5 mm / 0.01 deg tolerances: 57/57
+This is conditional geometric agreement, NOT motor calibration or fingertip validation.
+Expected residuals: rounded lengths, omitted 5.2 mm forearm offset, small lateral offsets.
+Forearm offset is partly absorbed by the derived angular-zero convention;
+its actual length sqrt(0.1349^2+0.0052^2) still differs from assignment L6.
