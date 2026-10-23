@@ -1,0 +1,28 @@
+#!/bin/bash
+# Type a word on the real keyboard: for every letter, press the key, then go back to home.
+#
+# Usage:   ./typeword pool
+#
+# It uses ./ee, so only the letters that have a position there can be typed (p, o, l).
+# PRESS_TIME and LIFT_TIME are how long to wait for the arm after each command, in seconds.
+PRESS_TIME=0.7
+LIFT_TIME=2.5
+
+cd "$(dirname "$0")"
+word="${1:-pool}"
+case "$word" in
+    *[!pol]*) echo "Only the letters p, o and l have key positions. Cannot type '$word'."; exit 1 ;;
+esac
+
+# Count the listeners once, so that each ./ee call below does not spend time asking again.
+export EE_LISTENERS=$(ros2 topic info /ik_target 2>/dev/null | awk '/Subscription count/ {print $3}')
+
+./ee home
+sleep "$LIFT_TIME"
+for (( i = 0; i < ${#word}; i++ )); do
+    ./ee "${word:$i:1}"
+    sleep "$PRESS_TIME"
+    ./ee home
+    sleep "$LIFT_TIME"
+done
+echo "Done: typed '$word'."

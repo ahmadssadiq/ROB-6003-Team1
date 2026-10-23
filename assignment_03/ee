@@ -1,0 +1,21 @@
+#!/bin/bash
+# Send the fingertip to a named position by publishing one end-effector pose on /ik_target.
+#
+# Usage:   ./ee home      ./ee p      ./ee o      ./ee l
+#
+# The numbers are x y z in metres, in the robot's base frame. They are for ONE placement of
+# the robot and keyboard. If either moves, measure again and change them here.
+case "$1" in
+    home) xyz="0.281 0.125 0.033" ;;
+    p)    xyz="0.293 0.115 -0.018" ;;
+    o)    xyz="0.280 0.136 -0.016" ;;
+    l)    xyz="0.269 0.124 -0.017" ;;
+    *)    echo "Usage: ./ee home|p|o|l"; exit 1 ;;
+esac
+set -- $xyz
+# Wait until every node listening on /ik_target (the IK node, and a recorder if one runs) is
+# connected, so that none of them misses this single message.
+listeners=${EE_LISTENERS:-$(ros2 topic info /ik_target 2>/dev/null | awk '/Subscription count/ {print $3}')}
+echo "Sending the fingertip to x=$1 y=$2 z=$3"
+ros2 topic pub --once -w "${listeners:-1}" /ik_target geometry_msgs/msg/PoseStamped \
+    "{pose: {position: {x: $1, y: $2, z: $3}}}" > /dev/null
