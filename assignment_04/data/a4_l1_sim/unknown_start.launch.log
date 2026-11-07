@@ -1,0 +1,107 @@
+[INFO] [launch]: All log files can be found below /home/team20/.ros/log/2026-11-06-13-26-27-776734-team20-MINI-S-11199
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [sim_node-1]: process started with pid [11204]
+[INFO] [static_transform_publisher-2]: process started with pid [11205]
+[INFO] [static_transform_publisher-3]: process started with pid [11206]
+[INFO] [aruco_detector-4]: process started with pid [11207]
+[INFO] [odometry_node-5]: process started with pid [11208]
+[INFO] [map_node-6]: process started with pid [11209]
+[INFO] [localization_node-7]: process started with pid [11210]
+[static_transform_publisher-2] [INFO] [1793989588.025042686] [static_transform_publisher_BT9gVtWcGJLl5Jh6]: Spinning until stopped - publishing transform
+[static_transform_publisher-2] translation: ('0.125000', '0.000000', '0.030000')
+[static_transform_publisher-2] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-2] from 'base' to 'camera_link'
+[static_transform_publisher-3] [INFO] [1793989588.053704669] [static_transform_publisher_bIYR8e2Xl3xrrotH]: Spinning until stopped - publishing transform
+[static_transform_publisher-3] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-3] rotation: ('-0.500000', '0.500000', '-0.500000', '0.500000')
+[static_transform_publisher-3] from 'camera_link' to 'camera'
+[localization_node-7] [INFO] [1793989589.755510140] [localization_node]: Localization started. Waiting for map_markers.
+[aruco_detector-4] [INFO] [1793989589.902616279] [aruco_detector]: ArucoDetector started (marker size 0.2065 m). Waiting for pictures.
+[odometry_node-5] [INFO] [1793989589.971143161] [odometry_node]: Odometry started at (0, 0, 0). Waiting for base_velocity.
+[map_node-6] [INFO] [1793989590.271703035] [map_node]: Map with 10 markers loaded from /home/team20/FOR26/ros_ws/install/aruco_localization/share/aruco_localization/config/sim_room_map.yaml: ids [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+[sim_node-1] [INFO] [1793989591.357037544] [sim_node]: Simulator running. Waiting for arm_commands and base_commands.
+[localization_node-7] [INFO] [1793989593.463525867] [localization_node]: Map received (10 markers). 2000 particles spread over x -3.5..3.5 m, y -3.0..3.0 m.
+[static_transform_publisher-2] [INFO] [1793989721.749592409] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-3] [INFO] [1793989721.749615144] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[aruco_detector-4] Traceback (most recent call last):
+[aruco_detector-4]   File "/home/team20/FOR26/ros_ws/install/aruco_localization/lib/aruco_localization/aruco_detector", line 33, in <module>
+[aruco_detector-4]     sys.exit(load_entry_point('aruco-localization==0.1.0', 'console_scripts', 'aruco_detector')())
+[aruco_detector-4]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[aruco_detector-4]   File "/home/team20/FOR26/ros_ws/install/aruco_localization/lib/python3.12/site-packages/aruco_localization/aruco_detector.py", line 177, in main
+[aruco_detector-4]     rclpy.spin(node)
+[aruco_detector-4]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+[aruco_detector-4]     executor.spin_once()
+[aruco_detector-4]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 926, in spin_once
+[aruco_detector-4]     self._spin_once_impl(timeout_sec)
+[aruco_detector-4]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 907, in _spin_once_impl
+[aruco_detector-4]     handler, entity, node = self.wait_for_ready_callbacks(
+[aruco_detector-4]                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[aruco_detector-4]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 877, in wait_for_ready_callbacks
+[aruco_detector-4]     return next(self._cb_iter)
+[aruco_detector-4]            ^^^^^^^^^^^^^^^^^^^
+[aruco_detector-4]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 785, in _wait_for_ready_callbacks
+[aruco_detector-4]     raise ExternalShutdownException()
+[aruco_detector-4] rclpy.executors.ExternalShutdownException
+[sim_node-1] Traceback (most recent call last):
+[sim_node-1]   File "/home/team20/FOR26/ros_ws/install/lekiwi_ros/lib/lekiwi_ros/sim_node", line 33, in <module>
+[sim_node-1]     sys.exit(load_entry_point('lekiwi-ros==0.1.0', 'console_scripts', 'sim_node')())
+[sim_node-1]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[sim_node-1]   File "/home/team20/FOR26/ros_ws/install/lekiwi_ros/lib/python3.12/site-packages/lekiwi_ros/sim_node.py", line 203, in main
+[sim_node-1]     rclpy.spin(node)
+[sim_node-1]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+[sim_node-1]     executor.spin_once()
+[sim_node-1]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 926, in spin_once
+[sim_node-1]     self._spin_once_impl(timeout_sec)
+[sim_node-1]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 907, in _spin_once_impl
+[sim_node-1]     handler, entity, node = self.wait_for_ready_callbacks(
+[sim_node-1]                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[sim_node-1]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 877, in wait_for_ready_callbacks
+[sim_node-1]     return next(self._cb_iter)
+[sim_node-1]            ^^^^^^^^^^^^^^^^^^^
+[sim_node-1]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 785, in _wait_for_ready_callbacks
+[sim_node-1]     raise ExternalShutdownException()
+[sim_node-1] rclpy.executors.ExternalShutdownException
+[map_node-6] Traceback (most recent call last):
+[map_node-6]   File "/home/team20/FOR26/ros_ws/install/aruco_localization/lib/aruco_localization/map_node", line 33, in <module>
+[map_node-6]     sys.exit(load_entry_point('aruco-localization==0.1.0', 'console_scripts', 'map_node')())
+[map_node-6]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[map_node-6]   File "/home/team20/FOR26/ros_ws/install/aruco_localization/lib/python3.12/site-packages/aruco_localization/map_node.py", line 96, in main
+[map_node-6]     rclpy.spin(node)
+[map_node-6]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+[map_node-6]     executor.spin_once()
+[map_node-6]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 926, in spin_once
+[map_node-6]     self._spin_once_impl(timeout_sec)
+[map_node-6]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 907, in _spin_once_impl
+[localization_node-7] Traceback (most recent call last):
+[localization_node-7]   File "/home/team20/FOR26/ros_ws/install/aruco_localization/lib/aruco_localization/localization_node", line 33, in <module>
+[localization_node-7]     sys.exit(load_entry_point('aruco-localization==0.1.0', 'console_scripts', 'localization_node')())
+[localization_node-7]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[localization_node-7]   File "/home/team20/FOR26/ros_ws/install/aruco_localization/lib/python3.12/site-packages/aruco_localization/localization_node.py", line 344, in main
+[localization_node-7]     rclpy.spin(node)
+[localization_node-7]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+[localization_node-7]     executor.spin_once()
+[localization_node-7]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 926, in spin_once
+[localization_node-7]     self._spin_once_impl(timeout_sec)
+[localization_node-7]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 907, in _spin_once_impl
+[localization_node-7]     handler, entity, node = self.wait_for_ready_callbacks(
+[localization_node-7]                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[localization_node-7]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 877, in wait_for_ready_callbacks
+[localization_node-7]     return next(self._cb_iter)
+[map_node-6]     handler, entity, node = self.wait_for_ready_callbacks(
+[map_node-6]                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[map_node-6]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 877, in wait_for_ready_callbacks
+[map_node-6]     return next(self._cb_iter)
+[map_node-6]            ^^^^^^^^^^^^^^^^^^^
+[map_node-6]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 785, in _wait_for_ready_callbacks
+[map_node-6]     raise ExternalShutdownException()
+[map_node-6] rclpy.executors.ExternalShutdownException
+[localization_node-7]            ^^^^^^^^^^^^^^^^^^^
+[localization_node-7]   File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 785, in _wait_for_ready_callbacks
+[localization_node-7]     raise ExternalShutdownException()
+[localization_node-7] rclpy.executors.ExternalShutdownException
+[INFO] [static_transform_publisher-2]: process has finished cleanly [pid 11205]
+[INFO] [static_transform_publisher-3]: process has finished cleanly [pid 11206]
+[ERROR] [aruco_detector-4]: process has died [pid 11207, exit code 1, cmd '/home/team20/FOR26/ros_ws/install/aruco_localization/lib/aruco_localization/aruco_detector --ros-args --params-file /tmp/launch_params_nmbfh9w7'].
+[ERROR] [localization_node-7]: process has died [pid 11210, exit code 1, cmd '/home/team20/FOR26/ros_ws/install/aruco_localization/lib/aruco_localization/localization_node --ros-args --params-file /home/team20/FOR26/ros_ws/install/aruco_localization/share/aruco_localization/config/localization.yaml'].
+[ERROR] [map_node-6]: process has died [pid 11209, exit code 1, cmd '/home/team20/FOR26/ros_ws/install/aruco_localization/lib/aruco_localization/map_node --ros-args --params-file /tmp/launch_params_c49tfw5i'].
+[ERROR] [sim_node-1]: process has died [pid 11204, exit code 1, cmd '/home/team20/FOR26/ros_ws/install/lekiwi_ros/lib/lekiwi_ros/sim_node --ros-args --params-file /tmp/launch_params_b4rnk13d'].
