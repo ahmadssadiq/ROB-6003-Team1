@@ -21,6 +21,8 @@ setup(
     entry_points={
         "console_scripts": [
             "fake_robot = roomrunner_localization.fake_robot:main",
+            "map_aruco_tf = roomrunner_localization.map_aruco_tf:main",
+            "aruco_map_publisher = roomrunner_localization.aruco_map_publisher:main",
         ],
     },
 )
