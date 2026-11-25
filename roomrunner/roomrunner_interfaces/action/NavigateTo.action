@@ -1,0 +1,11 @@
+# Follow a path and stop at its end, aligned with the goal heading. Poses in the map frame.
+nav_msgs/Path path
+float64 position_tolerance   # metres
+float64 yaw_tolerance        # radians
+---
+bool success
+string message
+float64 final_position_error # metres
+float64 final_yaw_error      # radians
+---
+float64 distance_remaining   # metres

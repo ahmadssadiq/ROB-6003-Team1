@@ -1,0 +1,9 @@
+# Pick up an object or place the held object. The robot base is already stopped next to the target.
+string mode                  # "pick" or "place"
+string object_name
+geometry_msgs/PoseStamped target   # object (pick) or drop-off (place) pose, map frame
+---
+bool success
+string message
+---
+string phase                 # approach, grasp, lift, carry, release, retreat

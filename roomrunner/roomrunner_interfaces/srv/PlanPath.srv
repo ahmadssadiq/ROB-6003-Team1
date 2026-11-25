@@ -1,0 +1,8 @@
+# Plan a path with A* on the occupancy grid. Poses in the map frame.
+geometry_msgs/PoseStamped start
+geometry_msgs/PoseStamped goal
+---
+bool success
+string message
+nav_msgs/Path path
+float64 length       # metres
