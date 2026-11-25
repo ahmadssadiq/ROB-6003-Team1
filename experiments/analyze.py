@@ -2,7 +2,7 @@
 
     python3 experiments/analyze.py e1      e1_checkpoints.csv: route,run,checkpoint,true_x,true_y,odom_x,odom_y,pf_x,pf_y
                                            e1_timeseries.csv (optional): t,true_x,true_y,odom_x,odom_y,pf_x,pf_y
-    python3 experiments/analyze.py e2      e2_trials.csv: request,steps,planner,valid,replans,success
+    python3 experiments/analyze.py e2      e2_trials.csv (from run_e2.py): id,steps,planner,valid,replans,success,...
     python3 experiments/analyze.py pickup  pickup_trials.csv: method,offset,trial,success
 
 PNG files are written to experiments/plots/.
@@ -60,18 +60,35 @@ def e1():
 
 
 def e2():
+    raw = rows("e2_trials.csv")
     trials = [dict(planner=x["planner"], valid=x["valid"] == "1", replans=int(x["replans"]), success=x["success"] == "1")
-              for x in rows("e2_trials.csv")]
+              for x in raw]
     summary = task_summary(trials)
     for planner, s in summary.items():
         print(f"E2 {planner}: SR {s['SR']:.2f}, valid plans {s['valid_fraction']:.2f}, "
               f"re-plans {s['mean_replans']:.2f} over {s['trials']} trials")
-    fig, ax = plt.subplots(figsize=(4, 3))
     names = list(summary)
-    ax.bar(names, [summary[n]["SR"] for n in names], color=[BLUE, ORANGE][:len(names)])
+    colors = [BLUE, ORANGE, GREY]
+    fig, ax = plt.subplots(figsize=(4, 3))
+    ax.bar(names, [summary[n]["SR"] for n in names], color=[colors[i % 3] for i in range(len(names))])
     ax.set_ylim(0, 1)
     ax.set_ylabel("task success rate")
     save(fig, "e2_success_rate.png")
+
+    # Success rate by number of steps (1 to 4), one bar per planner
+    steps = sorted({int(x["steps"]) for x in raw})
+    width = 0.8 / len(names)
+    fig, ax = plt.subplots(figsize=(5, 3))
+    for i, name in enumerate(names):
+        rates = [success_rate([x["success"] == "1" for x in raw if x["planner"] == name and int(x["steps"]) == n])
+                 for n in steps]
+        ax.bar([n + (i - (len(names) - 1) / 2) * width for n in steps], rates, width, label=name, color=colors[i % 3])
+    ax.set_xticks(steps)
+    ax.set_xlabel("steps in the request")
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("task success rate")
+    ax.legend()
+    save(fig, "e2_success_by_steps.png")
 
 
 def pickup():

@@ -7,7 +7,7 @@ project, **RoomRunner**: an LLM-planned fetch-and-place robot built on the LeKiw
 | --- | --- |
 | [`roomrunner/`](roomrunner/) | final project: ROS 2 packages (see below) |
 | [`docs/`](docs/) | project architecture, node and topic diagram, frames and transforms |
-| [`experiments/`](experiments/) | loggers and analysis scripts for experiments E1, E2 and pickup |
+| [`experiments/`](experiments/) | loggers and analysis scripts for experiments E1, E2 (`run_e2.py`, `e2_requests.yaml`) and pickup |
 | [`scripts/`](scripts/) | workspace setup |
 | [`tests/`](tests/) | repository-level tests (keeps the assignment tests running) |
 | `assignment_02.py` | Assignment 02: SO-101 forward and inverse kinematics |
