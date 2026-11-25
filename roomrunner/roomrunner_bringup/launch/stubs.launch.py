@@ -35,7 +35,8 @@ def nodes(context):
              parameters=[{"start": [float(start["x"]), float(start["y"]), float(start["yaw"])]}]),
         Node(package="roomrunner_control", executable="waypoint_follower", parameters=[{"max_speed": 0.3}]),
         Node(package="roomrunner_planning", executable="path_planner"),
-        Node(package="roomrunner_planning", executable="task_parser", parameters=[{"mode": "mock"}]),
+        Node(package="roomrunner_planning", executable="task_parser",
+             parameters=[{"mode": LaunchConfiguration("planner").perform(context), "places_file": room_file}]),
         Node(package="roomrunner_planning", executable="mission_fsm",
              parameters=[{"places_file": room_file, "standoff": float(standoff)}]),
         Node(package="roomrunner_manipulation", executable="pick_place_server"),
@@ -50,6 +51,7 @@ def nodes(context):
 
 def generate_launch_description():
     return LaunchDescription([
+        DeclareLaunchArgument("planner", default_value="mock", description="task parser mode: mock, direct or llmp"),
         DeclareLaunchArgument("request", default_value="bring the red block to the tray",
                               description="request sent 4 s after start; empty to send none"),
         OpaqueFunction(function=nodes),
