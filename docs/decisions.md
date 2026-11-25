@@ -11,7 +11,7 @@ Agreed decisions, so the whole team builds against the same assumptions. Change 
 | 5 | The mini PC rides on the robot. The overhead camera plugs into Mourya's laptop, which stays still | a USB cable cannot follow the robot |
 | 6 | Mourya's laptop runs the overhead pipeline (camera, occupancy grid, object poses) and sends only the results (`/occupancy_grid`, `/objects`) to the robot, not images | a few kB instead of video, so network delay does not matter |
 | 7 | The overhead camera takes one frame every 10 s, and immediately when the mission FSM asks (before each plan, after each pick and place) | the camera and room are static; the map only changes when an object moves |
-| 8 | Laptop and mini PC are both on Tailscale. With ROS 2 on the laptop: Fast DDS discovery server on the mini PC (Tailscale has no multicast). Without ROS on the laptop: a plain-Python sender (OpenCV, JSON over the network) and a bridge node on the mini PC | works on any network, including from home |
+| 8 | Mourya's laptop runs Ubuntu with ROS 2 Jazzy, so the overhead nodes run there as normal ROS nodes. Laptop and mini PC are both on Tailscale and find each other through a Fast DDS discovery server on the mini PC (Tailscale carries no multicast). Setup: [networking.md](networking.md) | works on any network, including from home |
 | 9 | Overhead camera: wide-angle 1080p USB webcam, 2 to 2.5 m above the floor, looking straight down | a 50 mm tag is still about 20 to 25 px wide from 2.5 m |
 | 10 | Overhead calibration: intrinsics with the Assignment 04 checkerboard script; extrinsics from 4 ArUco anchor tags on the floor whose positions are tape-measured from wall marker 2. The overhead map frame is then the wall-marker frame, so `T_map_aruco` is the identity, measured | one frame for robot, objects and obstacles, no separate registration |
 | 11 | A tag on top of the robot checks the registration (overhead pose against PF pose) and gives E1 its overhead-camera ground truth | |
@@ -21,5 +21,4 @@ Agreed decisions, so the whole team builds against the same assumptions. Change 
 
 ## Open
 
-- Mourya's laptop: operating system, and whether it has ROS 2 Jazzy (decides decision 8).
 - The camera model actually used, and its mounting height.
