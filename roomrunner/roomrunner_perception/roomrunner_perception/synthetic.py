@@ -12,6 +12,8 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
+from roomrunner_perception.overhead_pipeline import marker_image
+
 WIDTH, HEIGHT = 1920, 1080
 FLOOR_GREY = 170
 BOX_GREY = 60
@@ -63,7 +65,7 @@ def render(K, rvec, tvec, tags=(), boxes=(), width=WIDTH, height=HEIGHT, diction
     aruco = cv2.aruco.getPredefinedDictionary(getattr(cv2.aruco, dictionary))
     side, border = 200, 50
     for tag in tags:
-        printed = cv2.copyMakeBorder(cv2.aruco.generateImageMarker(aruco, tag.id, side), border, border, border,
+        printed = cv2.copyMakeBorder(marker_image(aruco, tag.id, side), border, border, border,
                                      border, cv2.BORDER_CONSTANT, value=255)
         n = side + 2 * border
         source = np.float32([(0, 0), (n, 0), (n, n), (0, n)])
