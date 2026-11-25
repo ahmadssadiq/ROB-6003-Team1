@@ -1,0 +1,17 @@
+# A made-up room for stub mode (no camera, no robot). All coordinates in the map frame, metres and radians.
+# The map frame's origin is the grid's lower-left corner.
+room:
+  width: 4.0             # x extent (m)
+  height: 3.0            # y extent (m)
+  resolution: 0.05       # grid cell size (m)
+  wall_thickness: 0.05
+  obstacles:             # axis-aligned boxes [x_min, y_min, x_max, y_max]
+    - [1.6, 0.0, 1.9, 1.6]     # a table leg row / partition from the bottom wall
+    - [2.6, 1.9, 3.0, 2.3]     # a box
+objects:
+  - {name: red_block,  kind: block, tag_id: 10, x: 3.0, y: 0.8, yaw: 0.0}
+  - {name: blue_block, kind: block, tag_id: 11, x: 1.0, y: 2.4, yaw: 0.5}
+  - {name: tray,       kind: tray,  tag_id: 20, x: 3.4, y: 2.6, yaw: 0.0}
+places:                  # named places that are not objects
+  home: {x: 0.6, y: 0.6, yaw: 0.0}
+robot_start: {x: 0.6, y: 0.6, yaw: 0.0}

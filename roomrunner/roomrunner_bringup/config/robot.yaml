@@ -1,0 +1,12 @@
+# Fixed transforms on the robot, in the base frame (metres, radians).
+camera_link:            # front camera lens, measured in Assignment 04
+  x: 0.132
+  y: 0.0
+  z: 0.043
+  pitch: 0.1676         # 9.6 deg, tilted up
+arm_base:               # SO-101 shoulder pan axis, from the Assignment 03 arm model
+  x: 0.06715
+  y: 0.0
+  z: 0.08445
+reach:                  # used by the mission FSM to choose where the base stops before a pick or place
+  standoff: 0.30        # m: distance from the base centre to the object when the base stops

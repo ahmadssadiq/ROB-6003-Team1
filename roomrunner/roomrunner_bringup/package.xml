@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>roomrunner_bringup</name>
+  <version>0.1.0</version>
+  <description>RoomRunner launch files and configuration</description>
+  <maintainer email="asadiq456@outlook.com">Team 1</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>lekiwi_ros</exec_depend>
+  <exec_depend>aruco_localization</exec_depend>
+  <exec_depend>arm_control</exec_depend>
+  <exec_depend>roomrunner_perception</exec_depend>
+  <exec_depend>roomrunner_localization</exec_depend>
+  <exec_depend>roomrunner_control</exec_depend>
+  <exec_depend>roomrunner_planning</exec_depend>
+  <exec_depend>roomrunner_manipulation</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,0 +1,8 @@
+# Fixed transform from the ArUco room map (Assignment 04, origin below wall marker 2) to the planning
+# map (overhead camera). p_map = T_map_aruco * p_aruco. A planar transform: translation and yaw.
+# PLACEHOLDER (identity) until measured once at setup; see docs/frames.md.
+T_map_aruco:
+  x: 0.0     # m: position of the aruco_map origin in the map frame
+  y: 0.0     # m
+  yaw: 0.0   # rad: angle of the aruco_map x axis, counter-clockwise from the map x axis
+measured: false

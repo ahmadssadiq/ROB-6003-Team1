@@ -1,0 +1,21 @@
+# Overhead camera on Mourya's laptop (decisions.md 5 to 12). Written by calibrate_overhead.py; numbers below
+# are PLACEHOLDERS until the camera is mounted and calibrated. Units: metres, pixels.
+device: "0"                      # /dev/video number of the overhead camera on the laptop
+width: 1920
+height: 1080
+intrinsics_file: ""              # checkerboard calibration (Assignment 04 calibrate_camera.py); "" = no undistortion
+dictionary: DICT_4X4_50
+anchors:                         # floor anchor tags: id -> centre [x, y] in the wall-marker map frame,
+  30: [0.5, -0.5]                # tape-measured from below wall marker 2 (x out of its wall, y along it)
+  31: [2.5, -0.5]
+  32: [2.5, 1.0]
+  33: [0.5, 1.0]
+homography: []                   # 3x3 pixels -> floor, filled in by calibrate_overhead.py
+empty_floor_image: ""            # picture of the room with no obstacles, for obstacle detection
+grid:                            # occupancy grid in the map frame
+  origin: [-0.5, -2.5]           # lower-left corner (m)
+  width: 4.0                     # m along x
+  height: 4.5                    # m along y
+  resolution: 0.05               # m per cell
+capture_period: 10.0             # s between frames; the mission FSM can ask for one at any time
+calibrated: false

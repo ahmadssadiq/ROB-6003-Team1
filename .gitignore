@@ -2,3 +2,26 @@
 .conda-pkgs/
 __pycache__/
 *.pyc
+
+# ROS 2 build output
+build/
+install/
+log/
+
+# Secrets: copy .env.example to .env; .env is never committed
+.env
+
+# Recordings, datasets and model weights stay out of git (keep them on the robot PC or a shared drive)
+*.bag
+*.mcap
+*.db3
+rosbag2_*/
+experiments/data/
+datasets/
+outputs/
+wandb/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx

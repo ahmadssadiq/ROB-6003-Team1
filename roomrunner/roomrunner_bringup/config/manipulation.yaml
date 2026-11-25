@@ -1,0 +1,12 @@
+# Pick and place settings for the Assignment 03 EEControl node (base frame, metres; gripper in %).
+# PLACEHOLDERS: measure them with the real arm and blocks (owner: Sarvanagupta).
+grasp_z: -0.010        # fingertip height when grasping a block (base frame z; the floor is about -0.03)
+place_z: 0.020         # fingertip height when releasing on the tray
+hover_height: 0.050    # above grasp/place height before descending
+lift_height: 0.060     # above grasp height after grasping
+gripper_open: 40.0     # % sent on /arm_commands
+gripper_closed: 0.0
+shoulder: [0.06715, 0.0]   # shoulder pan axis in the base frame (Assignment 03 arm model)
+min_reach: 0.12
+max_reach: 0.30
+settle_time: 2.0       # s to wait after each target for the arm to get there
