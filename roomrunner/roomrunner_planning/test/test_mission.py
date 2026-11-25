@@ -104,3 +104,8 @@ def test_drop_off_retry_keeps_the_block():
     retry = seen.index("RETRY")
     assert seen[retry + 1] == "PLAN_TO_DROPOFF"
     assert skills.calls.count("pick red_block") == 1
+
+
+def test_pick_only_request():
+    final, seen = states_of([("go_to", "blue_block"), ("pick", "blue_block")], FakeSkills())
+    assert final == "DONE" and seen[-2:] == ["PICK", "DONE"]

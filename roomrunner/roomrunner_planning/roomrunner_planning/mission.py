@@ -94,7 +94,7 @@ def run_mission(steps, skills, machine=None, on_state=None, request=""):
             event("pick_failed" if manipulation == "pick" else "place_failed", f"{manipulation} {target} failed", index)
             continue
         if manipulation == "pick":
-            event("picked", f"holding {target}", index, holding=target)
+            event("picked", f"holding {target}", index, holding=target, more_steps=more_steps)
         else:
             event("placed", f"placed on {target}", index, more_steps=more_steps)
         index += 1
