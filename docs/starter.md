@@ -5,7 +5,7 @@ node around it. `ros2 launch roomrunner_bringup stubs.launch.py` runs a whole mi
 
 | Owner | Plain-Python logic (tests) | ROS nodes | Next steps |
 | --- | --- | --- | --- |
-| Ahmad (planning) | `astar.py`, `fsm.py`, `validator.py`, `llm_planner.py`, `pddl.py`, `mock_parser.py` | `path_planner`, `task_parser`, `mission_fsm` | move `mission_fsm` onto `fsm.MissionStateMachine` (RETRY handling, call `/refresh_map`); try `planner:=direct` and `llmp` with a key; E2 request set |
+| Ahmad (planning) | `astar.py`, `fsm.py`, `mission.py`, `validator.py`, `llm_planner.py`, `pddl.py`, `mock_parser.py` | `path_planner`, `task_parser`, `mission_fsm` (on `fsm.py` + `mission.py`: RETRY, localization watchdog, `/refresh_map`) | try `planner:=direct` and `llmp` with a key; E2 request set; real-robot run |
 | Mourya (perception) | `overhead_geometry.py` (homography, tag poses, occupancy) | `overhead_node`, `calibrate_overhead`, `fake_overhead` | mount and calibrate the camera; anchors 30 to 33; empty-floor image; tune obstacle threshold |
 | Mourya (localization) | `transform2d.py` (incl. `fit_rigid` for `T_map_aruco`) | `map_aruco_tf`, `aruco_map_publisher`, `fake_robot` | measure `T_map_aruco` with the robot-top tag; then the EKF for E1 |
 | Mourya (control) | `controller.py` | `waypoint_follower` | tune gains on the real base; final alignment with the overhead pose |

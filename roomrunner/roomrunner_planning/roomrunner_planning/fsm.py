@@ -26,6 +26,7 @@ TRANSITIONS = {
     ("ALIGN", "aligned"): "MANIPULATE",
     ("ALIGN", "goal_reached"): "NEXT",      # a go_to step with nothing to pick or place
     ("ALIGN", "nav_failed"): "RETRY",
+    ("ALIGN", "localization_lost"): "RETRY",
     ("PICK", "picked"): "PLAN",
     ("PICK", "pick_failed"): "RETRY",
     ("PLACE", "placed"): "NEXT",
