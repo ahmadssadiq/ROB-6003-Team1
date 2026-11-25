@@ -1,0 +1,12 @@
+# Overhead camera: device, intrinsics file and its pose in the map frame.
+# PLACEHOLDER until the camera is mounted and calibrated (calibrate_overhead.py, Mourya).
+device: "0"
+intrinsics_file: ""     # path to the overhead camera's camera_intrinsics.yaml
+T_map_camera:           # camera optical frame in the map frame
+  x: 0.0
+  y: 0.0
+  z: 2.5
+  roll: 3.14159         # looking straight down
+  pitch: 0.0
+  yaw: 0.0
+calibrated: false
