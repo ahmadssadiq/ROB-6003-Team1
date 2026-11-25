@@ -30,6 +30,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from std_msgs.msg import Float64MultiArray
 
+from roomrunner_control.controller import at_goal, next_index, remaining_distance, velocity_command, wrap
 from roomrunner_interfaces.action import NavigateTo
 
 RATE_HZ = 20.0
@@ -39,10 +40,6 @@ SETTLE_TIME = 0.5   # s the robot must stay inside the tolerances before it coun
 def yaw_of(pose):
     q = pose.orientation
     return math.atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z))
-
-
-def wrap(angle):
-    return math.atan2(math.sin(angle), math.cos(angle))
 
 
 class WaypointFollower(Node):
@@ -94,17 +91,12 @@ class WaypointFollower(Node):
                 time.sleep(1.0 / RATE_HZ)
                 continue
             x, y, yaw = pose
-            # Skip waypoints that are already close, except the last one.
-            while index < len(points) - 1 and math.dist((x, y), points[index]) < p["lookahead"]:
-                index += 1
-            tx, ty = points[index]
-            dx, dy = tx - x, ty - y
-            distance = math.hypot(dx, dy)
+            index = next_index(points, index, (x, y), p["lookahead"])
+            distance = math.dist((x, y), points[index])
             yaw_error = wrap(goal_yaw - yaw)
 
-            at_goal = (index == len(points) - 1 and distance < goal.position_tolerance
-                       and abs(yaw_error) < goal.yaw_tolerance)
-            if at_goal:
+            if index == len(points) - 1 and at_goal(pose, points[-1], goal_yaw, goal.position_tolerance,
+                                                    goal.yaw_tolerance):
                 self.send(0, 0, 0)
                 settled_since = settled_since or time.monotonic()
                 if time.monotonic() - settled_since >= SETTLE_TIME:
@@ -115,17 +107,11 @@ class WaypointFollower(Node):
                     return result
             else:
                 settled_since = None
-                speed = min(p["max_speed"], p["gain"] * distance)
-                vx, vy = (speed * dx / distance, speed * dy / distance) if distance > 1e-6 else (0.0, 0.0)
-                # Map-frame velocity into the robot's frame.
-                forward = math.cos(yaw) * vx + math.sin(yaw) * vy
-                left = -math.sin(yaw) * vx + math.cos(yaw) * vy
-                turn = max(-p["max_turn"], min(p["max_turn"], p["yaw_gain"] * yaw_error))
-                self.send(forward, left, turn)
+                self.send(*velocity_command(pose, points[index], goal_yaw, p["max_speed"], p["gain"],
+                                            p["max_turn"], p["yaw_gain"]))
 
             feedback = NavigateTo.Feedback()
-            feedback.distance_remaining = distance + sum(
-                math.dist(points[i], points[i + 1]) for i in range(index, len(points) - 1))
+            feedback.distance_remaining = remaining_distance((x, y), points, index)
             goal_handle.publish_feedback(feedback)
             time.sleep(1.0 / RATE_HZ)
 
