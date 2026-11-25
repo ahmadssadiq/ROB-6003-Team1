@@ -1,0 +1,7 @@
+# Tagged objects the overhead camera reports (decisions.md 12). Tag id -> name used in requests, and kind.
+tags:
+  10: {name: red_block, kind: block}
+  11: {name: blue_block, kind: block}
+  12: {name: green_block, kind: block}
+  20: {name: tray, kind: tray}
+robot_tag: 40                    # tag on top of the robot: checks T_map_aruco, ground truth for E1

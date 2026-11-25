@@ -9,7 +9,7 @@ Stubs and what replaces them later:
     fake_overhead      (perception)    -> overhead camera, occupancy grid and object pose nodes
     fake_robot         (localization)  -> robot_node / sim_node + Assignment 04 particle filter + map_aruco_tf
     pick_place_server  (manipulation)  -> the same node, moving the arm through the Assignment 03 IK node
-    task_parser in mock mode, path_planner with straight lines (planning) -> LLM modes and A*
+    task_parser in mock mode (planning) -> planner:=direct or planner:=llmp with an LLM key in .env
 """
 import os
 

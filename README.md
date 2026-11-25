@@ -63,7 +63,13 @@ conda activate ros_mujoco && source ~/FOR26/ros_ws/install/setup.bash
 ros2 launch roomrunner_bringup stubs.launch.py      # everything with fake data, no hardware
 ```
 
-Simulation and real-robot launch files are added as the modules are built.
+```bash
+ros2 launch roomrunner_bringup robot.launch.py port:=<motor board> enable_motors:=true   # mini PC on the robot
+ros2 launch roomrunner_bringup overhead.launch.py                                       # Mourya's laptop
+python3 -m pytest                                                                       # all unit tests (system Python)
+```
+
+Each module's starting point and tests are listed in [docs/starter.md](docs/starter.md).
 
 ### LLM key
 
