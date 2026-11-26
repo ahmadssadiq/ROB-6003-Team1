@@ -8,7 +8,7 @@ node around it. `ros2 launch roomrunner_bringup stubs.launch.py` runs a whole mi
 | Ahmad (planning) | `astar.py`, `fsm.py`, `validator.py`, `llm_planner.py`, `pddl.py`, `mock_parser.py` | `path_planner`, `task_parser`, `mission_fsm` | move `mission_fsm` onto `fsm.MissionStateMachine` (RETRY handling, call `/refresh_map`); try `planner:=direct` and `llmp` with a key; E2 request set |
 | Mourya (perception) | `overhead_geometry.py` (homography, occupancy), `overhead_camera.py` (camera pose, tags at their height), `overhead_pipeline.py` (one frame to objects, robot, grid), `synthetic.py` (test pictures) | `overhead_node`, `calibrate_overhead`, `overhead_debug`, `fake_overhead` | mount the camera and check its view covers the room (below); intrinsics; anchors 30 to 33; measure tag heights in `objects.yaml`; empty-floor image; tune the obstacle threshold with `overhead_debug` |
 | Mourya (localization) | `transform2d.py` (incl. `fit_rigid`), `pose_check.py` (fit `T_map_aruco`, PF vs overhead monitor) | `map_aruco_tf`, `aruco_map_publisher`, `pose_monitor`, `measure_t_map_aruco`, `fake_robot` | measure `T_map_aruco` with `measure_t_map_aruco` (4 to 6 spots); watch `/localization_check` during runs; then the EKF |
-| Mourya (control) | `controller.py` | `waypoint_follower` | tune gains on the real base; final alignment with the overhead pose |
+| Mourya (control) | `controller.py` (incl. min speed, acceleration limit, overhead correction), `sim_base.py` (simulated base) | `waypoint_follower` (with overhead alignment) | tune offline with `python3 -m roomrunner_control.sim_base`, then on the real base: measure the motor deadband and set `min_speed`; check the stops with the overhead camera |
 | Sarvanagupta (manipulation) | `grasp.py` (map to base, reach, pick/place phases) | `pick_place_server` (stub / real via the Assignment 03 IK node) | measure grasp heights and gripper values (`manipulation.yaml`); scripted pick with the base stopped; demonstrations and ACT (`roomrunner_manipulation/il/README.md`) |
 | Everyone (experiments) | `experiments/metrics.py` (RMSE, SR) | `experiments/log_poses.py` | fill the CSVs, then `python3 experiments/analyze.py e1 / e2 / pickup` |
 
@@ -39,3 +39,16 @@ Placeholders to measure (all marked in their config files): `T_map_aruco.yaml`, 
    been still for 2 s, and re-seeds the filter at the overhead pose after 2 disagreements over 0.40 m or
    25 deg (30 s apart at most once). `ros2 topic echo /localization_check` shows each check;
    `pose_reset:=false` on robot.launch.py only reports.
+
+## Control: tuning and the final alignment
+
+1. **Offline:** `python3 -m roomrunner_control.sim_base` drives a test route on a simulated base (lag, motor
+   deadband, pose delay) for a few gain settings and prints time, final error and distance driven. Change
+   `FOLLOWER` / `BASE` in `sim_base.py` to try others.
+2. **Deadband on the real base:** send small commands (`ros2 topic pub /base_commands ...`) and find the
+   slowest speed that still moves the robot; set `min_speed` a little above it.
+3. **Alignment:** after each stop the follower asks the overhead camera for a picture and re-drives by the
+   difference between the filter and the robot-top tag (at most 2 times). The action result then reports the
+   camera's error. Without the overhead camera it is skipped after 3 s (`align_with_overhead:=false` to turn it off).
+4. `/robot_pose` now comes at 20 Hz from TF (filter correction times live odometry), so the follower never steers
+   on a pose that is seconds old; if it gets older than 0.5 s anyway, the follower stops and waits.

@@ -2,11 +2,18 @@
 
 Publishes:
     TF (static)    map -> aruco_map, from T_map_aruco in the config file
-    robot_pose     geometry_msgs/PoseStamped in the map frame: the particle filter's estimate, transformed
+    robot_pose     geometry_msgs/PoseStamped in the map frame, at `rate` Hz: TF aruco_map -> base (the particle
+                   filter's correction map -> odom times the live odometry odom -> base), transformed
 Subscribes:
-    pose_estimate  geometry_msgs/PoseWithCovarianceStamped in the aruco_map frame (Assignment 04 localization_node)
+    pose_estimate  geometry_msgs/PoseWithCovarianceStamped in the aruco_map frame (Assignment 04 localization_node),
+                   used only while TF aruco_map -> base is not available
 Parameters:
     transform_file  YAML with T_map_aruco: {x, y, yaw} (roomrunner_bringup/config/T_map_aruco.yaml)
+    rate            Hz (default 20)
+
+Why TF and not only pose_estimate: the filter publishes pose_estimate only when it updates from a wall marker
+(after 2 cm or 1 s, and only with a marker in view), so it can be silent for seconds while the robot drives.
+Its TF map -> odom is published at 20 Hz and odometry carries the pose along in between.
 """
 import math
 
@@ -14,7 +21,8 @@ import rclpy
 import yaml
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, TransformStamped
 from rclpy.node import Node
-from tf2_ros import StaticTransformBroadcaster
+from rclpy.time import Time
+from tf2_ros import Buffer, StaticTransformBroadcaster, TransformException, TransformListener
 
 from roomrunner_localization.transform2d import matrix, transform_pose
 
@@ -27,6 +35,7 @@ class MapArucoTF(Node):
     def __init__(self):
         super().__init__("map_aruco_tf")
         self.declare_parameter("transform_file", "")
+        self.declare_parameter("rate", 20.0)
         with open(self.get_parameter("transform_file").value) as f:
             config = yaml.safe_load(f)
         t = config["T_map_aruco"]
@@ -44,13 +53,32 @@ class MapArucoTF(Node):
 
         self.pose_pub = self.create_publisher(PoseStamped, "robot_pose", 10)
         self.create_subscription(PoseWithCovarianceStamped, "pose_estimate", self.on_estimate, 10)
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.tf_ok = False
+        self.create_timer(1.0 / self.get_parameter("rate").value, self.on_timer)
         self.get_logger().info(f"map -> aruco_map: x={t['x']} y={t['y']} yaw={t['yaw']}")
 
+    def on_timer(self):
+        try:
+            tf = self.tf_buffer.lookup_transform("aruco_map", "base", Time())
+        except TransformException:
+            self.tf_ok = False
+            return
+        self.tf_ok = True
+        t = tf.transform
+        self.publish(tf.header.stamp, (t.translation.x, t.translation.y, yaw_of(t.rotation)))
+
     def on_estimate(self, msg):
+        if self.tf_ok:
+            return
         p = msg.pose.pose
-        x, y, yaw = transform_pose(self.T_map_aruco, (p.position.x, p.position.y, yaw_of(p.orientation)))
+        self.publish(msg.header.stamp, (p.position.x, p.position.y, yaw_of(p.orientation)))
+
+    def publish(self, stamp, pose_aruco):
+        x, y, yaw = transform_pose(self.T_map_aruco, pose_aruco)
         out = PoseStamped()
-        out.header.stamp, out.header.frame_id = msg.header.stamp, "map"
+        out.header.stamp, out.header.frame_id = stamp, "map"
         out.pose.position.x, out.pose.position.y = x, y
         out.pose.orientation.z, out.pose.orientation.w = math.sin(yaw / 2), math.cos(yaw / 2)
         self.pose_pub.publish(out)
