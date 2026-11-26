@@ -19,21 +19,33 @@ import yaml
 
 from roomrunner_perception.overhead_camera import OverheadCamera
 from roomrunner_perception.overhead_pipeline import make_detector, process_frame
-from roomrunner_perception.synthetic import Tag, looking_down, render
+from roomrunner_perception.synthetic import Cuboid, Tag, looking_down, render
 
 CONFIG = Path(__file__).resolve().parents[2] / "roomrunner_bringup" / "config"
 
 
+def middle_colour(spec):
+    """BGR colour in the middle of a colour object's HSV range (hue ranges may wrap around 0)."""
+    (h0, s0, v0), (h1, s1, v1) = spec["hsv_low"], spec["hsv_high"]
+    hue = ((h0 + ((h1 - h0) % 180) / 2) % 180)
+    hsv = np.uint8([[[hue, (s0 + s1) / 2, (v0 + v1) / 2]]])
+    return tuple(int(c) for c in cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0, 0])
+
+
 def synthetic_scene(objects_cfg):
-    """A made-up room seen by a level camera 2.25 m up: every object of objects.yaml, the robot and a box."""
+    """A made-up room seen by a level camera 2.25 m up: every object of objects.yaml (tagged and colour
+    cuboids, each cuboid drawn in the middle of its colour range), the robot and a box."""
     K, rvec, tvec = looking_down((1.5, 0.0, 2.25), tilt=0.03)
-    tags = [Tag(int(tag_id), 0.6 + 0.6 * i, 0.7 - 0.25 * (i % 2), z=float(info.get("height", 0.0)), yaw=0.3 * i)
+    tags = [Tag(int(tag_id), 2.6 - 0.6 * i, 0.9, z=float(info.get("height", 0.0)), yaw=0.3 * i, size=0.08)
             for i, (tag_id, info) in enumerate(objects_cfg["tags"].items())]
+    cuboids = [Cuboid(0.5 + 0.5 * i, 0.45 - 0.3 * (i % 2), yaw=0.5 * i, length=spec["size"][0], width=spec["size"][1],
+                      height=spec["height"], colour=middle_colour(spec))
+               for i, spec in enumerate(objects_cfg.get("colour_objects", {}).values())]
     tags.append(Tag(int(objects_cfg["robot_tag"]), 0.6, -0.7, z=float(objects_cfg.get("robot_tag_height", 0.0)),
                     yaw=1.0, size=0.10))
     boxes = [(2.0, -1.0, 2.4, -0.7), (0.45, -0.85, 0.75, -0.55)]      # an obstacle; the robot's base
     camera = OverheadCamera(K=K, rvec=rvec, tvec=tvec)
-    return render(K, rvec, tvec, tags=tags, boxes=boxes), render(K, rvec, tvec), camera
+    return render(K, rvec, tvec, tags=tags, boxes=boxes, cuboids=cuboids), render(K, rvec, tvec), camera
 
 
 def draw(frame, result, camera, objects_cfg, grid_cfg):

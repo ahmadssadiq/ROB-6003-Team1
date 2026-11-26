@@ -24,6 +24,7 @@ setup(
             "overhead_node = roomrunner_perception.overhead_node:main",
             "calibrate_overhead = roomrunner_perception.calibrate_overhead:main",
             "overhead_debug = roomrunner_perception.overhead_debug:main",
+            "overhead_colour_picker = roomrunner_perception.overhead_colour_picker:main",
         ],
     },
 )

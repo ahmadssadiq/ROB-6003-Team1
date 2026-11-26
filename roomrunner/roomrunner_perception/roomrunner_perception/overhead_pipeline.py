@@ -53,15 +53,20 @@ def marker_image(dictionary, tag_id, side):
     return aruco.drawMarker(dictionary, tag_id, side)
 
 
-def clear_disc(grid, origin, resolution, x, y, radius):
-    """Mark the cells within radius (m) of map point (x, y) as free. Used for the robot's own footprint: the
-    robot is not in the empty-floor picture, so without this it would be an obstacle on its own start."""
+def mark_disc(grid, origin, resolution, x, y, radius, value):
+    """Set the cells within radius (m) of map point (x, y) to value."""
     rows, cols = grid.shape
     ys = origin[1] + (np.arange(rows) + 0.5) * resolution
     xs = origin[0] + (np.arange(cols) + 0.5) * resolution
     gx, gy = np.meshgrid(xs, ys)
-    grid[(gx - x) ** 2 + (gy - y) ** 2 <= radius ** 2] = 0
+    grid[(gx - x) ** 2 + (gy - y) ** 2 <= radius ** 2] = value
     return grid
+
+
+def clear_disc(grid, origin, resolution, x, y, radius):
+    """Mark the cells within radius (m) of map point (x, y) as free. Used for the robot's own footprint: the
+    robot is not in the empty-floor picture, so without this it would be an obstacle on its own start."""
+    return mark_disc(grid, origin, resolution, x, y, radius, 0)
 
 
 def process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor=None):
@@ -89,6 +94,12 @@ def process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor=No
         mask = np.zeros(frame.shape[:2], np.uint8)
     origin, resolution = grid_cfg["origin"], grid_cfg["resolution"]
     grid = occupancy_from_mask(mask, camera.H, origin, resolution, grid_cfg["width"], grid_cfg["height"])
+    # colour cuboids are too small for obstacle_mask, but the base must not drive over them: mark each one
+    # (half its length around its centre); the path planner grows obstacles by the robot's radius
+    for o in objects:
+        if o["tag_id"] == -1:
+            size = objects_cfg["colour_objects"][o["name"]]["size"]
+            mark_disc(grid, origin, resolution, o["x"], o["y"], max(max(size) / 2, resolution), 100)
     if robot is not None:
         clear_disc(grid, origin, resolution, robot[0], robot[1], float(objects_cfg.get("robot_clear_radius", 0.0)))
     return {"objects": objects, "robot": robot, "grid": grid, "seen": sorted(seen)}

@@ -112,3 +112,24 @@ def test_suggested_range_covers_the_samples():
         low, high = suggest_hsv_range(samples)
         mask = colour_mask(samples.reshape(1, -1, 3), low, high)
         assert mask.mean() == 255, bgr
+
+
+def test_picker_overlap_and_yaml_write(tmp_path):
+    from roomrunner_perception.overhead_colour_picker import hue_overlap, write_ranges
+    assert hue_overlap((170, 8), (5, 20)) and not hue_overlap((20, 34), (45, 80))
+    path = tmp_path / "objects.yaml"
+    path.write_text(CONFIG.read_text())
+    write_ranges(path, {"blue_cuboid": ([101, 90, 40], [121, 255, 255])})
+    written = yaml.safe_load(path.read_text())["colour_objects"]
+    assert written["blue_cuboid"]["hsv_low"] == [101, 90, 40] and written["red_cuboid"] == SPECS["red_cuboid"]
+    assert "PLACEHOLDER" in path.read_text()                     # comments kept
+
+
+def test_cuboids_are_marked_in_the_grid(camera_setup):
+    K, rvec, tvec, camera = camera_setup
+    image = render(K, rvec, tvec, cuboids=cuboids(["blue_cuboid"]))
+    grid_cfg = {"origin": [-0.5, -2.0], "width": 4.0, "height": 4.0, "resolution": 0.05}
+    grid = process_frame(image, camera, make_detector(), OBJECTS_CFG, grid_cfg, render(K, rvec, tvec))["grid"]
+    x, y, _ = SCENE["blue_cuboid"]
+    row, col = int((y + 2.0) / 0.05), int((x + 0.5) / 0.05)
+    assert grid[row, col] == 100 and grid[row, col + 3] == 0
