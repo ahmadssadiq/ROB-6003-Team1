@@ -1,7 +1,8 @@
 """Pick and place action server, on top of the Assignment 03 EEControl node (inverse_kinematics).
 
 Action server:
-    pick_place     roomrunner_interfaces/PickPlace: mode ("pick" or "place"), object name, target pose (map)
+    pick_place     roomrunner_interfaces/PickPlace: mode ("pick" or "place"), object name, target pose (map;
+                   or the base frame when its frame_id is "base", for bench tests with try_pick)
 Subscribes:
     robot_pose     geometry_msgs/PoseStamped (map): where the base is, to turn the target into the base frame
     arm_state      std_msgs/Float64MultiArray: 5 joint angles (deg) and the gripper (%), from robot_node
@@ -159,11 +160,14 @@ class PickPlaceServer(Node):
         s = self.settings
         with self.lock:
             arm_state = self.arm_state
-        if self.robot is None:
-            raise RuntimeError("no robot_pose")
         if arm_state is None:
             raise RuntimeError("no arm_state: is robot_node running?")
-        target_xy = object_in_base(self.robot, self.place_xy(goal))
+        if goal.target.header.frame_id == "base":       # bench tests (try_pick): already in the base frame
+            target_xy = (goal.target.pose.position.x, goal.target.pose.position.y)
+        elif self.robot is None:
+            raise RuntimeError("no robot_pose")
+        else:
+            target_xy = object_in_base(self.robot, self.place_xy(goal))
         if not in_reach(target_xy, s["shoulder"], s["min_reach"], s["max_reach"]):
             raise RuntimeError(f"target at {target_xy[0]:.2f}, {target_xy[1]:.2f} m (base frame) is out of reach")
         if goal.mode == "pick":
