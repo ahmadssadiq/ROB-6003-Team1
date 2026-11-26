@@ -23,6 +23,7 @@ setup(
             "fake_overhead = roomrunner_perception.fake_overhead:main",
             "overhead_node = roomrunner_perception.overhead_node:main",
             "calibrate_overhead = roomrunner_perception.calibrate_overhead:main",
+            "overhead_debug = roomrunner_perception.overhead_debug:main",
         ],
     },
 )
