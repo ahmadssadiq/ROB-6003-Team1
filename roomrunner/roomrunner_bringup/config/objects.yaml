@@ -6,6 +6,7 @@ tags:
   20: {name: tray, kind: tray, height: 0.02}             # PLACEHOLDER height
 robot_tag: 40                    # tag on top of the robot: checks T_map_aruco, ground truth for E1
 robot_tag_height: 0.30           # PLACEHOLDER: floor to the robot-top tag (m)
+robot_tag_offset: [0.0, 0.0]     # PLACEHOLDER: the tag's centre in the base frame (m); its x axis along the robot's front
 robot_clear_radius: 0.30         # PLACEHOLDER: radius (m) around the robot tag cleared from the obstacle grid,
                                  # since the robot is not in the empty-floor picture; a bit more than the base
 

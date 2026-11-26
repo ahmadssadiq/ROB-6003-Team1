@@ -89,3 +89,10 @@ def test_floor_outside_the_view_is_unknown(setup):
     *_, camera, empty, frame = setup
     grid = process_frame(frame, camera, make_detector(), OBJECTS_CFG, GRID_CFG, empty)["grid"]
     assert grid[cell(1.5, -1.8)] == -1        # 1.8 m off-centre in y: outside a 2.25 m high 1080p view
+
+
+def test_robot_tag_behind_the_base_centre():
+    from roomrunner_perception.overhead_pipeline import base_from_tag
+    # robot at (1, 2) facing +y; its tag 8 cm behind the centre, so at (1, 1.92)
+    assert base_from_tag((1.0, 1.92, math.pi / 2), (-0.08, 0.0)) == pytest.approx((1.0, 2.0, math.pi / 2))
+    assert base_from_tag((0.5, 0.5, 0.3), (0.0, 0.0)) == (0.5, 0.5, 0.3)

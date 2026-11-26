@@ -69,6 +69,15 @@ def clear_disc(grid, origin, resolution, x, y, radius):
     return mark_disc(grid, origin, resolution, x, y, radius, 0)
 
 
+def base_from_tag(tag_pose, offset):
+    """The robot's base pose (x, y, yaw) from the robot-top tag's pose. The tag's x axis points along the
+    robot's forward direction; offset = (x, y) of the tag's centre in the base frame (m), for a tag that
+    cannot sit at the base centre (the arm is in the way)."""
+    x, y, yaw = tag_pose
+    dx, dy = offset
+    return x - math.cos(yaw) * dx + math.sin(yaw) * dy, y - math.sin(yaw) * dx - math.cos(yaw) * dy, yaw
+
+
 def process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor=None):
     tags = {int(k): v for k, v in objects_cfg["tags"].items()}
     robot_tag = int(objects_cfg["robot_tag"])
@@ -77,7 +86,8 @@ def process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor=No
     objects, robot = [], None
     for tag_id, corners in sorted(seen.items()):
         if tag_id == robot_tag:
-            robot = camera.tag_pose(corners, float(objects_cfg.get("robot_tag_height", 0.0)))
+            tag = camera.tag_pose(corners, float(objects_cfg.get("robot_tag_height", 0.0)))
+            robot = base_from_tag(tag, objects_cfg.get("robot_tag_offset", (0.0, 0.0)))
         elif tag_id in tags:
             info = tags[tag_id]
             height = float(info.get("height", 0.0))
