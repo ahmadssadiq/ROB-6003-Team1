@@ -6,7 +6,7 @@ image, y down). Units: metres and radians.
 | Frame | Origin and axes | Parent | Transform published by | Where the numbers come from |
 | --- | --- | --- | --- | --- |
 | `map` | planning frame: a fixed point on the floor seen by the overhead camera; x, y on the floor, z up. The occupancy grid and object poses are in this frame | (root) | | chosen when the overhead camera is calibrated |
-| `overhead_camera` | optical frame of the overhead camera | `map` | static, `roomrunner_bringup` launch | `config/overhead_camera.yaml`, from `calibrate_overhead.py` |
+| `overhead_camera` | optical frame of the overhead camera (OpenCV: x right, y down, z along the view) | `map` | static, `roomrunner_bringup` launch | `camera_pose` in `config/overhead_camera.yaml`, from `calibrate_overhead.py`: X_camera = R X_map + t, R = Rodrigues(rvec); see `overhead_camera.py` |
 | `aruco_map` | Assignment 04 room map: origin on the floor below wall marker 2, x out of its wall into the room | `map` | static, `map_aruco_tf` | `config/T_map_aruco.yaml` (x, y, yaw), measured once |
 | `marker_<id>` | a wall marker where the map says it is | `aruco_map` | static, `aruco_map_publisher` | `classroom_map.yaml` (Assignment 04) |
 | `odom` | where odometry started | `aruco_map` | `localization_node` (A04), the particle filter's correction | particle filter |

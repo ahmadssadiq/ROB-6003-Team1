@@ -11,6 +11,9 @@ anchors:                         # floor anchor tags: id -> centre [x, y] in the
   32: [2.5, 1.0]
   33: [0.5, 1.0]
 homography: []                   # 3x3 pixels -> floor, filled in by calibrate_overhead.py
+camera_pose: {}                  # filled in by calibrate_overhead.py when intrinsics_file is set (overhead_camera.py):
+                                 # rvec, tvec (X_camera = R X_map + t), centre (camera position in map, m),
+                                 # reprojection_px (calibration check: should be under about 3 px)
 empty_floor_image: ""            # picture of the room with no obstacles, for obstacle detection
 grid:                            # occupancy grid in the map frame
   origin: [-0.5, -2.5]           # lower-left corner (m)
