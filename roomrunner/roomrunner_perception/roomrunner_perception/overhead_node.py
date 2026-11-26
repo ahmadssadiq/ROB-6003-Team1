@@ -10,44 +10,33 @@ Service:
                     each pick or place)
 Parameters:
     camera_file     overhead_camera.yaml (calibration, grid)      objects_file   objects.yaml (tag table)
+    image_topic     "" (default): the USB camera of camera_file. Otherwise a sensor_msgs/Image topic to take
+                    the pictures from instead (the simulator's overhead camera, roomrunner_sim)
 
 The camera is opened only for each capture, so it is free in between and the laptop does little work.
 The image processing itself is overhead_pipeline.process_frame (plain Python, tested on synthetic pictures).
 """
+import threading
+import time
+
 import cv2
 import numpy as np
 import rclpy
 import yaml
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from sensor_msgs.msg import Image
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from std_srvs.srv import Trigger
 
 from roomrunner_interfaces.msg import ObjectPose, ObjectPoseArray
-from roomrunner_perception.overhead_camera import OverheadCamera
+from roomrunner_perception.overhead_camera import camera_from_config, load_intrinsics
 from roomrunner_perception.overhead_pipeline import make_detector, process_frame, yaw_to_quaternion_zw
 
 LATCHED = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
-
-
-def load_intrinsics(path):
-    """camera_matrix and distortion from an Assignment 04 style calibration file, or (None, None)."""
-    if not path:
-        return None, None
-    with open(path) as f:
-        data = yaml.safe_load(f)
-    K = np.array(data["camera_matrix"]["data"], float).reshape(3, 3)
-    return K, np.array(data["distortion_coefficients"]["data"], float)
-
-
-def camera_from_config(cfg, K):
-    """OverheadCamera from overhead_camera.yaml: the camera pose when calibration found one (needs the
-    intrinsics), otherwise the floor homography."""
-    pose = cfg.get("camera_pose") or {}
-    if K is not None and pose.get("rvec"):
-        return OverheadCamera(K=K, rvec=pose["rvec"], tvec=pose["tvec"])
-    return OverheadCamera(H=np.array(cfg["homography"], float))
 
 
 class OverheadNode(Node):
@@ -55,6 +44,7 @@ class OverheadNode(Node):
         super().__init__("overhead_node")
         self.declare_parameter("camera_file", "")
         self.declare_parameter("objects_file", "")
+        self.declare_parameter("image_topic", "")
         with open(self.get_parameter("camera_file").value) as f:
             self.cfg = yaml.safe_load(f)
         with open(self.get_parameter("objects_file").value) as f:
@@ -66,17 +56,55 @@ class OverheadNode(Node):
         if not self.camera.has_pose:
             self.get_logger().warn("No intrinsics/camera pose: tag heights are ignored, so raised tags (robot, "
                                    "blocks) are placed too far from the centre of the image.")
-        self.empty = cv2.imread(self.cfg["empty_floor_image"]) if self.cfg.get("empty_floor_image") else None
+        self.empty = None
+        self.load_empty_floor()
         self.detector = make_detector(self.cfg.get("dictionary", "DICT_4X4_50"))
+
+        self.image_topic = self.get_parameter("image_topic").value
+        self.image, self.image_time, self.image_lock = None, 0.0, threading.Lock()
+        group = ReentrantCallbackGroup()
+        if self.image_topic:
+            self.create_subscription(Image, self.image_topic, self.on_image, 2, callback_group=group)
 
         self.grid_pub = self.create_publisher(OccupancyGrid, "occupancy_grid", LATCHED)
         self.objects_pub = self.create_publisher(ObjectPoseArray, "objects", LATCHED)
         self.robot_pub = self.create_publisher(PoseStamped, "overhead_robot", 10)
-        self.create_service(Trigger, "refresh_map", self.on_refresh)
-        self.create_timer(float(self.cfg.get("capture_period", 10.0)), self.capture)
-        self.capture()
+        self.create_service(Trigger, "refresh_map", self.on_refresh, callback_group=group)
+        self.create_timer(float(self.cfg.get("capture_period", 10.0)), self.on_timer, callback_group=group)
+        if not self.image_topic:
+            self.capture()
+
+    def load_empty_floor(self):
+        """The empty-floor picture, once it exists (the simulator writes its own a moment after it starts)."""
+        path = self.cfg.get("empty_floor_image")
+        if path and self.empty is None:
+            self.empty = cv2.imread(path)
+            if self.empty is None:
+                self.get_logger().warn(f"No empty-floor picture at {path} yet: no obstacles until there is one.",
+                                       throttle_duration_sec=30.0)
+
+    def on_image(self, msg):
+        frame = np.frombuffer(msg.data, np.uint8).reshape(msg.height, msg.width, 3)
+        if msg.encoding == "rgb8":
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        with self.image_lock:
+            self.image, self.image_time = frame, time.monotonic()
+
+    def on_timer(self):
+        try:
+            self.capture()
+        except RuntimeError as error:
+            self.get_logger().warn(str(error), throttle_duration_sec=10.0)
 
     def grab(self):
+        if self.image_topic:          # a picture taken after this request (the room may just have changed)
+            asked = time.monotonic()
+            while time.monotonic() - asked < 5.0:
+                with self.image_lock:
+                    if self.image_time > asked:
+                        return self.image
+                time.sleep(0.05)
+            raise RuntimeError(f"no picture on {self.image_topic}")
         camera = cv2.VideoCapture(int(self.cfg["device"]))
         camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.cfg["width"])
         camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.cfg["height"])
@@ -96,6 +124,7 @@ class OverheadNode(Node):
         return response
 
     def capture(self):
+        self.load_empty_floor()
         frame = self.grab()
         result = process_frame(frame, self.camera, self.detector, self.objects_cfg, self.cfg["grid"], self.empty)
         stamp = self.get_clock().now().to_msg()
@@ -134,8 +163,10 @@ class OverheadNode(Node):
 def main():
     rclpy.init()
     node = OverheadNode()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:

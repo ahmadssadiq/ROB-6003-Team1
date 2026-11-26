@@ -24,7 +24,7 @@ import yaml
 
 from roomrunner_perception.overhead_camera import OverheadCamera, camera_pose_from_anchors
 from roomrunner_perception.overhead_geometry import homography_from_anchors
-from roomrunner_perception.overhead_node import load_intrinsics
+from roomrunner_perception.overhead_camera import load_intrinsics
 from roomrunner_perception.overhead_pipeline import make_detector
 
 

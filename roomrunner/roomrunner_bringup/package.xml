@@ -17,6 +17,7 @@
   <exec_depend>roomrunner_control</exec_depend>
   <exec_depend>roomrunner_planning</exec_depend>
   <exec_depend>roomrunner_manipulation</exec_depend>
+  <exec_depend>roomrunner_sim</exec_depend>
   <test_depend>python3-pytest</test_depend>
 
   <export>

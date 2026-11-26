@@ -21,6 +21,7 @@ import math
 
 import cv2
 import numpy as np
+import yaml
 
 
 def camera_pose_from_anchors(anchor_pixels, anchor_floor, K):
@@ -91,3 +92,22 @@ class OverheadCamera:
         x, y = points.mean(axis=0)
         direction = (points[1] - points[0]) + (points[2] - points[3])   # both horizontal edges, averaged
         return float(x), float(y), math.atan2(direction[1], direction[0])
+
+
+def load_intrinsics(path):
+    """camera_matrix and distortion from an Assignment 04 style calibration file, or (None, None)."""
+    if not path:
+        return None, None
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    K = np.array(data["camera_matrix"]["data"], float).reshape(3, 3)
+    return K, np.array(data["distortion_coefficients"]["data"], float)
+
+
+def camera_from_config(cfg, K):
+    """OverheadCamera from overhead_camera.yaml: the camera pose when calibration found one (needs the
+    intrinsics), otherwise the floor homography."""
+    pose = cfg.get("camera_pose") or {}
+    if K is not None and pose.get("rvec"):
+        return OverheadCamera(K=K, rvec=pose["rvec"], tvec=pose["tvec"])
+    return OverheadCamera(H=np.array(cfg["homography"], float))

@@ -40,6 +40,7 @@ the drop-off, releases it and reports success.
 | `roomrunner_localization` | Aditya Mourya | particle filter reuse (Assignment 04), ArUco map to planning map transform |
 | `roomrunner_control` | Aditya Mourya | waypoint follower for the LeKiwi base |
 | `roomrunner_manipulation` | Aditya Sarvanagupta | arm interface (Assignment 03 EEControl), scripted pick and place, demonstrations, imitation learning |
+| `roomrunner_sim` | Aditya Mourya | the room in the course MuJoCo simulator, with a simulated overhead camera |
 
 See [docs/architecture.md](docs/architecture.md) for every node, topic and frame.
 
@@ -61,6 +62,7 @@ conda activate ros_mujoco && source ~/FOR26/ros_ws/install/setup.bash
 
 ```bash
 ros2 launch roomrunner_bringup stubs.launch.py      # everything with fake data, no hardware
+ros2 launch roomrunner_bringup sim.launch.py        # the real nodes in the MuJoCo simulator (conda environment)
 ```
 
 ```bash

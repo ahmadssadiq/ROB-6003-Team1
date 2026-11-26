@@ -2,7 +2,7 @@
 
     ros2 launch roomrunner_bringup stubs.launch.py
     ros2 launch roomrunner_bringup stubs.launch.py request:="bring the blue block to the tray then go home"
-    ros2 launch roomrunner_bringup stubs.launch.py request:=""        (send requests yourself:)
+    ros2 launch roomrunner_bringup stubs.launch.py request:=none      (send requests yourself:)
     ros2 topic pub --once /task_request std_msgs/msg/String "{data: 'bring the red block to the tray'}"
 
 Stubs and what replaces them later:
@@ -43,7 +43,7 @@ def nodes(context):
         Node(package="roomrunner_manipulation", executable="pick_place_server"),
     ]
     request = LaunchConfiguration("request").perform(context)
-    if request:
+    if request and request != "none":
         actions.append(TimerAction(period=4.0, actions=[ExecuteProcess(
             cmd=["ros2", "topic", "pub", "--once", "-w", "1", "/task_request", "std_msgs/msg/String",
                  f"{{data: '{request}'}}"], output="log")]))
@@ -54,6 +54,6 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("planner", default_value="mock", description="task parser mode: mock, direct or llmp"),
         DeclareLaunchArgument("request", default_value="bring the red block to the tray",
-                              description="request sent 4 s after start; empty to send none"),
+                              description="request sent 4 s after start; none to send none"),
         OpaqueFunction(function=nodes),
     ])

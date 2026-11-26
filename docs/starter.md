@@ -87,3 +87,23 @@ python3 experiments/analyze.py e2                                   # SR overall
 ```
 
 The mock parser is the baseline: it solves the 14 direct requests and none of the 6 indirect ones.
+
+## Simulation (no robot)
+
+```bash
+conda activate ros_mujoco
+ros2 launch roomrunner_bringup sim.launch.py viewer:=true
+```
+
+The course simulator with our room (`roomrunner_sim/config/sim_room.yaml`): three cuboids, the tray, two low
+obstacles, the robot-top tag and an overhead camera 2.5 m above a 4 m x 3 m arena. The real nodes run on it: the
+Assignment 04 particle filter on the simulated front camera, `map_aruco_tf`, `pose_monitor`, `overhead_node`
+(pictures from `overhead/image`), the planner, the mission FSM and the follower; picks are stubs. 20 s after
+the start it sends "bring the red cuboid to the tray then go home" (`request:=none` to send your own).
+`/true_pose` is the simulator's ground truth, for checking the filter (E1 in simulation).
+
+Things the simulator taught us, which hold for the real robot too:
+- Wall markers must stay visible over the obstacles (in the sim they are lower than the markers); behind a tall
+  obstacle the filter drifts on odometry alone.
+- `robot_radius` (path_planner) must cover the base (0.15 m) plus the filter's error: 0.30 m in the sim.
+- The arm, stretched out, reaches 0.41 m in front of the base: drive with it folded on the real robot.
