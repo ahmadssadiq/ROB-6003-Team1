@@ -9,7 +9,7 @@ node around it. `ros2 launch roomrunner_bringup stubs.launch.py` runs a whole mi
 | Mourya (perception) | `overhead_geometry.py` (homography, occupancy), `overhead_camera.py` (camera pose, tags at their height), `overhead_pipeline.py` (one frame to objects, robot, grid), `synthetic.py` (test pictures) | `overhead_node`, `calibrate_overhead`, `overhead_debug`, `fake_overhead` | mount the camera and check its view covers the room (below); intrinsics; anchors 30 to 33; measure tag heights in `objects.yaml`; empty-floor image; tune the obstacle threshold with `overhead_debug` |
 | Mourya (localization) | `transform2d.py` (incl. `fit_rigid`), `pose_check.py` (fit `T_map_aruco`, PF vs overhead monitor) | `map_aruco_tf`, `aruco_map_publisher`, `pose_monitor`, `measure_t_map_aruco`, `fake_robot` | measure `T_map_aruco` with `measure_t_map_aruco` (4 to 6 spots); watch `/localization_check` during runs; then the EKF |
 | Mourya (control) | `controller.py` (incl. min speed, acceleration limit, overhead correction), `sim_base.py` (simulated base) | `waypoint_follower` (with overhead alignment) | tune offline with `python3 -m roomrunner_control.sim_base`, then on the real base: measure the motor deadband and set `min_speed`; check the stops with the overhead camera |
-| Sarvanagupta (manipulation) | `grasp.py` (map to base, reach, pick/place phases) | `pick_place_server` (stub / real via the Assignment 03 IK node) | measure grasp heights and gripper values (`manipulation.yaml`); scripted pick with the base stopped; demonstrations and ACT (`roomrunner_manipulation/il/README.md`) |
+| Sarvanagupta (manipulation) | `grasp.py` (map to base, reach, phases, IK check, holding check, tray slots, grasp offset) | `pick_place_server` (stub / real via the Assignment 03 IK node), `try_pick` | tune `grasp_z`, `grasp_offset`, gripper values and `holding_min_gripper` with `try_pick`; measure grasp heights and gripper values (`manipulation.yaml`); scripted pick with the base stopped; demonstrations and ACT (`roomrunner_manipulation/il/README.md`) |
 | Everyone (experiments) | `experiments/metrics.py` (RMSE, SR) | `experiments/log_poses.py` | fill the CSVs, then `python3 experiments/analyze.py e1 / e2 / pickup` |
 
 Placeholders to measure (all marked in their config files): `T_map_aruco.yaml`, `overhead_camera.yaml`,
@@ -52,3 +52,19 @@ Placeholders to measure (all marked in their config files): `T_map_aruco.yaml`, 
    camera's error. Without the overhead camera it is skipped after 3 s (`align_with_overhead:=false` to turn it off).
 4. `/robot_pose` now comes at 20 Hz from TF (filter correction times live odometry), so the follower never steers
    on a pose that is seconds old; if it gets older than 0.5 s anyway, the follower stops and waits.
+
+## Manipulation: tuning the scripted pick
+
+1. **Build in the conda env, without `--symlink-install`** (as for the course packages): then the nodes start
+   with the conda `python3`, and `pick_place_server` can import the Assignment 03 IK (it needs MuJoCo through
+   `lekiwi_sim`) to check every phase before moving. Otherwise it warns and only the IK node's refusal is caught.
+2. Start the robot with `arm:=real`, put a block at a ruler-measured spot in front of the robot, then
+   `ros2 run roomrunner_manipulation try_pick --x 0.25 --y 0.0 --place`. The server reads `manipulation.yaml`
+   again for every goal: edit `grasp_z`, `grasp_offset` (the block must end up between the jaws, not under the
+   fingertip), `gripper_open` / `gripper_closed`, and try again.
+3. **Holding check:** note the gripper reading (`ros2 topic echo /arm_state`, last value) with a block held and
+   with nothing; set `holding_min_gripper` between the two. A miss then fails the pick and the mission retries.
+4. **Reach:** with the Assignment 03 IK, finger-down targets reach about 0.30 m in front of the base at grasp
+   height, less for the hover phase. Keep `standoff` (robot.yaml) so the block lands near 0.22 to 0.26 m.
+5. **Tray:** `tray_slots` are drop spots in the tray tag's frame; a slot with another object within
+   `slot_clearance` is skipped. `stub_fail_rate` (stub mode) makes picks miss to try the mission's RETRY.

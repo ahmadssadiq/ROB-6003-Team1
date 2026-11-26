@@ -21,6 +21,7 @@ setup(
     entry_points={
         "console_scripts": [
             "pick_place_server = roomrunner_manipulation.pick_place_server:main",
+            "try_pick = roomrunner_manipulation.try_pick:main",
         ],
     },
 )
