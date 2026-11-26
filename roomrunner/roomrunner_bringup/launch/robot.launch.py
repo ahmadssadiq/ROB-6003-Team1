@@ -3,6 +3,7 @@
 
     ros2 launch roomrunner_bringup robot.launch.py port:=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B79017378-if00
     options: enable_motors:=true  camera_device:=0  planner:=mock|direct|llmp  arm:=stub|real
+             pose_reset:=true|false  (re-seed the particle filter from the overhead camera when it is lost)
 
 Reused unchanged: robot_node (course), Assignment 04 camera_node, aruco_detector, odometry_node,
 localization_node (in the aruco_map frame) and the Assignment 03 inverse_kinematics (EEControl) node.
@@ -16,7 +17,8 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch_ros.actions import Node
 import yaml
 
-ARGUMENTS = {"port": "", "enable_motors": "false", "camera_device": "0", "planner": "mock", "arm": "stub"}
+ARGUMENTS = {"port": "", "enable_motors": "false", "camera_device": "0", "planner": "mock", "arm": "stub",
+             "pose_reset": "true"}
 
 
 def nodes(context):
@@ -53,6 +55,8 @@ def nodes(context):
         Node(package="roomrunner_localization", executable="aruco_map_publisher", parameters=[{"map_file": marker_map}]),
         Node(package="roomrunner_localization", executable="map_aruco_tf",
              parameters=[{"transform_file": os.path.join(config, "T_map_aruco.yaml")}]),
+        Node(package="roomrunner_localization", executable="pose_monitor", parameters=[{
+            "transform_file": os.path.join(config, "T_map_aruco.yaml"), "reset": arg["pose_reset"] == "true"}]),
         # Control, planning, manipulation
         Node(package="roomrunner_control", executable="waypoint_follower"),
         Node(package="roomrunner_planning", executable="path_planner"),

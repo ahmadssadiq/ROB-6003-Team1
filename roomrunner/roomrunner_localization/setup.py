@@ -23,6 +23,8 @@ setup(
             "fake_robot = roomrunner_localization.fake_robot:main",
             "map_aruco_tf = roomrunner_localization.map_aruco_tf:main",
             "aruco_map_publisher = roomrunner_localization.aruco_map_publisher:main",
+            "pose_monitor = roomrunner_localization.pose_monitor:main",
+            "measure_t_map_aruco = roomrunner_localization.measure_t_map_aruco:main",
         ],
     },
 )
