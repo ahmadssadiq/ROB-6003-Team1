@@ -11,9 +11,8 @@ Parameters:
     camera_file     overhead_camera.yaml (calibration, grid)      objects_file   objects.yaml (tag table)
 
 The camera is opened only for each capture, so it is free in between and the laptop does little work.
+The image processing itself is overhead_pipeline.process_frame (plain Python, tested on synthetic pictures).
 """
-import math
-
 import cv2
 import numpy as np
 import rclpy
@@ -25,7 +24,8 @@ from rclpy.qos import DurabilityPolicy, QoSProfile
 from std_srvs.srv import Trigger
 
 from roomrunner_interfaces.msg import ObjectPose, ObjectPoseArray
-from roomrunner_perception.overhead_geometry import obstacle_mask, occupancy_from_mask, tag_pose_on_floor
+from roomrunner_perception.overhead_camera import OverheadCamera
+from roomrunner_perception.overhead_pipeline import make_detector, process_frame, yaw_to_quaternion_zw
 
 LATCHED = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
 
@@ -40,6 +40,15 @@ def load_intrinsics(path):
     return K, np.array(data["distortion_coefficients"]["data"], float)
 
 
+def camera_from_config(cfg, K):
+    """OverheadCamera from overhead_camera.yaml: the camera pose when calibration found one (needs the
+    intrinsics), otherwise the floor homography."""
+    pose = cfg.get("camera_pose") or {}
+    if K is not None and pose.get("rvec"):
+        return OverheadCamera(K=K, rvec=pose["rvec"], tvec=pose["tvec"])
+    return OverheadCamera(H=np.array(cfg["homography"], float))
+
+
 class OverheadNode(Node):
     def __init__(self):
         super().__init__("overhead_node")
@@ -48,16 +57,16 @@ class OverheadNode(Node):
         with open(self.get_parameter("camera_file").value) as f:
             self.cfg = yaml.safe_load(f)
         with open(self.get_parameter("objects_file").value) as f:
-            objects = yaml.safe_load(f)
-        self.tags, self.robot_tag = {int(k): v for k, v in objects["tags"].items()}, objects["robot_tag"]
+            self.objects_cfg = yaml.safe_load(f)
         if not self.cfg.get("calibrated") or not self.cfg.get("homography"):
             raise RuntimeError("The overhead camera is not calibrated yet: run calibrate_overhead first.")
-        self.H = np.array(self.cfg["homography"], float)
         self.K, self.dist = load_intrinsics(self.cfg.get("intrinsics_file", ""))
+        self.camera = camera_from_config(self.cfg, self.K)
+        if not self.camera.has_pose:
+            self.get_logger().warn("No intrinsics/camera pose: tag heights are ignored, so raised tags (robot, "
+                                   "blocks) are placed too far from the centre of the image.")
         self.empty = cv2.imread(self.cfg["empty_floor_image"]) if self.cfg.get("empty_floor_image") else None
-        self.detector = cv2.aruco.ArucoDetector(
-            cv2.aruco.getPredefinedDictionary(getattr(cv2.aruco, self.cfg.get("dictionary", "DICT_4X4_50"))),
-            cv2.aruco.DetectorParameters())
+        self.detector = make_detector(self.cfg.get("dictionary", "DICT_4X4_50"))
 
         self.grid_pub = self.create_publisher(OccupancyGrid, "occupancy_grid", LATCHED)
         self.objects_pub = self.create_publisher(ObjectPoseArray, "objects", LATCHED)
@@ -87,29 +96,27 @@ class OverheadNode(Node):
 
     def capture(self):
         frame = self.grab()
+        result = process_frame(frame, self.camera, self.detector, self.objects_cfg, self.cfg["grid"], self.empty)
         stamp = self.get_clock().now().to_msg()
-        corners, ids, _ = self.detector.detectMarkers(frame)
+
         objects = ObjectPoseArray()
         objects.header.stamp, objects.header.frame_id = stamp, "map"
-        for c, tag_id in zip(corners, [] if ids is None else ids.ravel()):
-            x, y, yaw = tag_pose_on_floor(self.H, c.reshape(4, 2))
-            if int(tag_id) == self.robot_tag:
-                robot = PoseStamped()
-                robot.header = objects.header
-                robot.pose.position.x, robot.pose.position.y = x, y
-                robot.pose.orientation.z, robot.pose.orientation.w = math.sin(yaw / 2), math.cos(yaw / 2)
-                self.robot_pub.publish(robot)
-            elif int(tag_id) in self.tags:
-                info = self.tags[int(tag_id)]
-                obj = ObjectPose(name=info["name"], kind=info["kind"], tag_id=int(tag_id), confidence=1.0)
-                obj.pose.position.x, obj.pose.position.y = x, y
-                obj.pose.orientation.z, obj.pose.orientation.w = math.sin(yaw / 2), math.cos(yaw / 2)
-                objects.objects.append(obj)
+        for o in result["objects"]:
+            obj = ObjectPose(name=o["name"], kind=o["kind"], tag_id=o["tag_id"], confidence=1.0)
+            obj.pose.position.x, obj.pose.position.y = o["x"], o["y"]
+            obj.pose.orientation.z, obj.pose.orientation.w = yaw_to_quaternion_zw(o["yaw"])
+            objects.objects.append(obj)
         self.objects_pub.publish(objects)
 
-        g = self.cfg["grid"]
-        mask = obstacle_mask(frame, self.empty) if self.empty is not None else np.zeros(frame.shape[:2], np.uint8)
-        grid = occupancy_from_mask(mask, self.H, g["origin"], g["resolution"], g["width"], g["height"])
+        if result["robot"] is not None:
+            x, y, yaw = result["robot"]
+            robot = PoseStamped()
+            robot.header = objects.header
+            robot.pose.position.x, robot.pose.position.y = x, y
+            robot.pose.orientation.z, robot.pose.orientation.w = yaw_to_quaternion_zw(yaw)
+            self.robot_pub.publish(robot)
+
+        g, grid = self.cfg["grid"], result["grid"]
         msg = OccupancyGrid()
         msg.header.stamp, msg.header.frame_id = stamp, "map"
         msg.info.resolution = float(g["resolution"])

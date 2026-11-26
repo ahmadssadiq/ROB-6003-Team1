@@ -7,9 +7,13 @@ marker 2 into `anchors` of overhead_camera.yaml.
     ros2 run roomrunner_perception calibrate_overhead --config <path to overhead_camera.yaml>
 
 1. Clear the floor (no obstacles), press Enter: saves the empty-floor picture.
-2. Make sure all 4 anchors are visible, press Enter: computes the homography and writes it back into the
-   config with calibrated: true. With exactly 4 anchors the fit is exact on them, so the printout only
-   confirms the ids; the real check is the robot-top tag against the particle filter (decisions.md, 11).
+2. Make sure all 4 anchors are visible, press Enter: computes the floor homography and, when the intrinsics
+   are set, the camera pose (overhead_camera.py), and writes them back into the config with calibrated: true.
+
+The homography fits 4 anchors exactly, so it cannot show a bad tape measurement. The camera pose can: it has
+6 unknowns for 8 measured numbers, so a wrong anchor shows as a reprojection error of more than a few pixels
+and as a camera height that does not match the tape. The final check is the robot-top tag against the
+particle filter (decisions.md, 11).
 """
 import argparse
 from pathlib import Path
@@ -18,8 +22,10 @@ import cv2
 import numpy as np
 import yaml
 
-from roomrunner_perception.overhead_geometry import homography_from_anchors, pixel_to_floor
+from roomrunner_perception.overhead_camera import OverheadCamera, camera_pose_from_anchors
+from roomrunner_perception.overhead_geometry import homography_from_anchors
 from roomrunner_perception.overhead_node import load_intrinsics
+from roomrunner_perception.overhead_pipeline import make_detector
 
 
 def grab(cfg, K, dist):
@@ -49,21 +55,33 @@ def main():
 
     input("All 4 anchor tags visible? Press Enter...")
     frame = grab(cfg, K, dist)
-    detector = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(getattr(cv2.aruco, cfg["dictionary"])),
-                                       cv2.aruco.DetectorParameters())
-    corners, ids, _ = detector.detectMarkers(frame)
-    seen = {} if ids is None else {int(i): c.reshape(4, 2).mean(axis=0) for c, i in zip(corners, ids.ravel())}
+    seen = {i: c.mean(axis=0) for i, c in make_detector(cfg["dictionary"]).detect(frame).items()}
     anchors = {int(k): v for k, v in cfg["anchors"].items()}
     missing = sorted(set(anchors) - set(seen))
     if missing:
         raise SystemExit(f"Anchor tags not found: {missing}. Seen: {sorted(seen)}")
     ids_sorted = sorted(anchors)
-    H = homography_from_anchors([seen[i] for i in ids_sorted], [anchors[i] for i in ids_sorted])
-    for i in ids_sorted:
-        x, y = pixel_to_floor(H, seen[i])
-        print(f"anchor {i}: measured {anchors[i]}, from the image {x:.3f}, {y:.3f}")
-
+    pixels, floor = [seen[i] for i in ids_sorted], [anchors[i] for i in ids_sorted]
+    H = homography_from_anchors(pixels, floor)
     cfg.update(homography=np.asarray(H).tolist(), empty_floor_image=str(empty_path), calibrated=True)
+
+    if K is None:
+        print("No intrinsics_file: saved the floor homography only. Tag heights will be ignored.")
+        cfg["camera_pose"] = {}
+    else:
+        pose = camera_pose_from_anchors(pixels, floor, K)
+        camera = OverheadCamera(K=K, rvec=pose["rvec"], tvec=pose["tvec"])
+        cx, cy, cz = pose["centre"]
+        print(f"Camera at x {cx:.3f}, y {cy:.3f} m, height {cz:.3f} m (check the height with a tape)")
+        print(f"Reprojection error {pose['reprojection_px']:.2f} px")
+        for i, p, f in zip(ids_sorted, pixels, floor):
+            x, y = camera.to_map(p)
+            print(f"anchor {i}: measured {f}, from the image {x:.3f}, {y:.3f} "
+                  f"({100 * np.hypot(x - f[0], y - f[1]):.1f} cm)")
+        if pose["reprojection_px"] > 3.0:
+            print("WARNING: more than 3 px. Re-measure the anchors (and check their ids) before trusting this.")
+        cfg["camera_pose"] = {k: [float(v) for v in pose[k]] for k in ("rvec", "tvec", "centre")}
+        cfg["camera_pose"]["reprojection_px"] = float(pose["reprojection_px"])
     path.write_text(yaml.safe_dump(cfg, sort_keys=False))
     print(f"Wrote the homography to {path}")
 
