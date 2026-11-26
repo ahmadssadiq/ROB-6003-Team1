@@ -3,7 +3,7 @@
     python3 experiments/analyze.py e1      e1_checkpoints.csv: route,run,checkpoint,true_x,true_y,odom_x,odom_y,pf_x,pf_y
                                            e1_timeseries.csv (optional): t,true_x,true_y,odom_x,odom_y,pf_x,pf_y
     python3 experiments/analyze.py e2      e2_trials.csv (from run_e2.py): id,steps,planner,valid,replans,success,...
-    python3 experiments/analyze.py pickup  pickup_trials.csv: method,offset,trial,success
+    python3 experiments/analyze.py pickup  pickup_trials.csv (from il/evaluate.py): method,object,position,trial,success,...
 
 PNG files are written to experiments/plots/.
 """
@@ -93,15 +93,35 @@ def e2():
 
 def pickup():
     r = rows("pickup_trials.csv")
-    methods = sorted({x["method"] for x in r})
+    methods = sorted({x["method"] for x in r}, key=lambda m: (m != "scripted", m))     # scripted first
+    objects = sorted({x["object"] for x in r})
+    colors = [GREY, BLUE, ORANGE]
     sr = {m: success_rate([x["success"] == "1" for x in r if x["method"] == m]) for m in methods}
     for m in methods:
-        print(f"pickup {m}: SR {sr[m]:.2f}")
+        n = sum(x["method"] == m for x in r)
+        per = ", ".join(f"{o} {success_rate([x['success'] == '1' for x in r if x['method'] == m and x['object'] == o]):.2f}"
+                        for o in objects if any(x["method"] == m and x["object"] == o for x in r))
+        print(f"pickup {m}: SR {sr[m]:.2f} over {n} trials ({per})")
     fig, ax = plt.subplots(figsize=(4, 3))
-    ax.bar(methods, [sr[m] for m in methods], color=[GREY, BLUE][:len(methods)])
+    ax.bar(methods, [sr[m] for m in methods], color=colors[:len(methods)])
     ax.set_ylim(0, 1)
-    ax.set_ylabel("pickup success rate (held-out offsets)")
+    ax.set_ylabel("pickup success rate (held-out positions)")
     save(fig, "pickup_success_rate.png")
+
+    # By object, one bar per method
+    width = 0.8 / len(methods)
+    fig, ax = plt.subplots(figsize=(5, 3))
+    for i, m in enumerate(methods):
+        rates = [success_rate([x["success"] == "1" for x in r if x["method"] == m and x["object"] == o] or [0])
+                 for o in objects]
+        ax.bar([k + (i - (len(methods) - 1) / 2) * width for k in range(len(objects))], rates, width, label=m,
+               color=colors[i % 3])
+    ax.set_xticks(range(len(objects)))
+    ax.set_xticklabels([o.replace("_", " ") for o in objects])
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("pickup success rate")
+    ax.legend()
+    save(fig, "pickup_by_object.png")
 
 
 if __name__ == "__main__":
