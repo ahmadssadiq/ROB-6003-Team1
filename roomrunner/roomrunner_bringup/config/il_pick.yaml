@@ -1,0 +1,59 @@
+# Imitation-learning pickup (owner: Sarvanagupta): one file for recording, training and evaluation.
+# Read by roomrunner_manipulation/il/*.py. Units: metres, degrees for yaw, cm for object sizes.
+# Frames: positions are in the robot's base frame (x forward, y left, origin at the base centre on the
+# robot's own axis), the same frame as the Assignment 03 IK and try_pick.
+
+robot:                       # the arm alone through the LeKiwi motor board (LeRobot so101_follower)
+  type: so101_follower
+  port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B79017378-if00   # motor board, as in robot.launch.py
+  id: lekiwi_arm             # calibration from make_arm_calibration.py
+leader:
+  type: so101_leader
+  port: ""                   # PLACEHOLDER: lerobot-find-port with the leader arm plugged in
+  id: leader                 # ~/.cache/huggingface/lerobot/calibration/teleoperators/so_leader/leader.json
+
+cameras:                     # PLACEHOLDER paths: lerobot-find-cameras opencv, then use /dev/v4l/by-id/...
+  front: {path: "", width: 640, height: 480, fps: 30}    # the robot's front camera (Assignment 04)
+  wrist: {path: "", width: 640, height: 480, fps: 30}    # the camera on the gripper
+
+dataset:
+  repo_id: team1/roomrunner_pick
+  root: ~/roomrunner_data/roomrunner_pick   # outside git (datasets are never committed)
+  fps: 30
+  episode_time_s: 20         # one pick: reach, grasp, lift, hold still for 2 s
+  reset_time_s: 15           # put the object at the next position, leader arm back to the start pose
+
+objects:                     # size_cm: length x width x height
+  yellow_cuboid:  {size_cm: [6.4, 2.0, 1.4], task: "Pick up the yellow cuboid"}
+  violet_hexagon: {size_cm: [5.0, 5.0, 1.7], task: "Pick up the violet hexagon"}   # 2.9 cm sides, 5.0 across flats
+  blue_cube:      {size_cm: [3.5, 3.5, 1.9], task: "Pick up the blue cube"}
+
+# Object centres in the base frame. T: training (recorded), H: held-out (only for evaluation, never recorded).
+# All are within the Assignment 03 IK's reach at grasp and hover height (checked for x 0.19 to 0.31 m, |y| <= 0.12 m).
+positions:
+  T1: [0.19, -0.10]
+  T2: [0.19, -0.05]
+  T3: [0.19, 0.00]
+  T4: [0.19, 0.05]
+  T5: [0.19, 0.10]
+  T6: [0.26, -0.10]
+  T7: [0.26, -0.05]
+  T8: [0.26, 0.00]
+  T9: [0.26, 0.05]
+  T10: [0.26, 0.10]
+  H1: [0.225, -0.08]
+  H2: [0.225, -0.04]
+  H3: [0.225, 0.00]
+  H4: [0.225, 0.04]
+  H5: [0.225, 0.08]
+
+front_edge_x: 0.13           # PLACEHOLDER (m): base centre to the robot's front edge; the mat is laid against it
+repetitions: 2               # episodes per object and training position: 3 x 10 x 2 = 60 episodes
+yaws_deg: [0, 45, 90, 135]   # object orientations, varied between episodes (yaw 0: long side along x)
+seed: 6003                   # the episode plan's order is shuffled with this seed, so it is the same every time
+
+evaluation:
+  trials_per_position: 2     # 3 objects x 5 held-out positions x 2 = 30 trials per method
+  rollout_duration_s: 20     # ACT runs this long per trial (like an episode)
+  policy_path: ~/roomrunner_data/act_pick/checkpoints/last/pretrained_model
+  output: experiments/data/pickup_trials.csv

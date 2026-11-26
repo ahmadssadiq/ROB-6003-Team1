@@ -25,3 +25,7 @@ wandb/
 *.ckpt
 *.safetensors
 *.onnx
+
+# Imitation learning: generated files (make them again with make_mat.py / evaluate.py sheet)
+roomrunner/roomrunner_manipulation/il/position_mat.pdf
+roomrunner/roomrunner_manipulation/il/sheet.txt
