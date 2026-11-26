@@ -17,6 +17,8 @@ PICK = re.compile(r"^(?:pick up|pick|grab|get) (?:the )?(.+)$")
 PLACE = re.compile(r"^(?:place|drop|put|leave) (?:it )?(?:down )?(?:to|into|in|on|onto) (?:the )?(.+)$")
 GO = re.compile(r"^(?:go|drive|move) to (?:the )?(.+)$")
 HOME = re.compile(r"^(?:come back|return(?: home)?|go home|go back(?: home)?)$")
+FETCH_HOME = re.compile(r"^(?:bring|take|move|carry|fetch|deliver) (?:the )?(.+?) (home)$")
+VERBS = r"(?:go|come|return|head|drive|put|place|drop|leave|take|bring|move|carry|fetch|deliver|pick|grab|get)"
 
 
 def name_of(words):
@@ -24,18 +26,29 @@ def name_of(words):
     return "_".join(words.lower().split())
 
 
+def objects_of(words):
+    """'the red block and the blue block' / 'red and blue blocks' -> ['red_block', 'blue_block']."""
+    words = words.strip()
+    if m := re.match(r"^(\w+) and (\w+) (\w+?)s$", words):        # "red and blue blocks"
+        return [name_of(f"{m.group(1)} {m.group(3)}"), name_of(f"{m.group(2)} {m.group(3)}")]
+    return [name_of(re.sub(r"^the ", "", w.strip())) for w in re.split(r"\band\b", words) if w.strip()]
+
+
 def parse(request):
     """Request text -> list of (skill, target), or raise ValueError if a part is not understood."""
     text = request.lower().strip().rstrip(".!")
-    parts = [p.strip() for p in re.split(r",|\band then\b|\bthen\b|\band\b", text) if p.strip()]
+    # Split into commands at commas and "then"; at "and" only when a new command follows ("and go home"),
+    # so "the red block and the blue block" stays one object list.
+    parts = [p.strip() for p in re.split(r",|\band then\b|\bthen\b|\band (?=" + VERBS + r"\b)", text) if p.strip()]
     steps = []
     for part in parts:
         if m := PLACE.match(part):     # before FETCH, so "put it on the tray" is not "fetch 'it'"
             place = name_of(m.group(1))
             steps += [("go_to", place), ("place", place)]
-        elif m := FETCH.match(part):
-            obj, place = name_of(m.group(1)), name_of(m.group(2))
-            steps += [("go_to", obj), ("pick", obj), ("go_to", place), ("place", place)]
+        elif (m := FETCH.match(part)) or (m := FETCH_HOME.match(part)):
+            place = name_of(m.group(2)) if m.re is FETCH else "home"
+            for obj in objects_of(m.group(1)):     # "the red block and the blue block" -> two fetches
+                steps += [("go_to", obj), ("pick", obj), ("go_to", place), ("place", place)]
         elif m := PICK.match(part):
             obj = name_of(m.group(1))
             steps += [("go_to", obj), ("pick", obj)]

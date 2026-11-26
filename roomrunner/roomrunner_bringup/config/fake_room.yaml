@@ -11,6 +11,7 @@ room:
 objects:
   - {name: red_block,  kind: block, tag_id: 10, x: 3.0, y: 0.8, yaw: 0.0}
   - {name: blue_block, kind: block, tag_id: 11, x: 1.0, y: 2.4, yaw: 0.5}
+  - {name: green_block, kind: block, tag_id: 12, x: 0.8, y: 1.6, yaw: 0.0}
   - {name: tray,       kind: tray,  tag_id: 20, x: 3.4, y: 2.6, yaw: 0.0}
 places:                  # named places that are not objects
   home: {x: 0.6, y: 0.6, yaw: 0.0}

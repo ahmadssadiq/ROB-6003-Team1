@@ -1,0 +1,61 @@
+# E2: language tasks. 20 requests that need 1 to 4 steps, run with both planning versions (direct LLM and
+# LLM+P). A step is a pick, a place, or a drive with nothing to pick or place (for example "go home").
+#
+# goal: what must be true at the end, as PDDL facts (see roomrunner_planning/pddl.py). A plan counts as correct
+# when it is valid AND ends in exactly this state (roomrunner_planning/goal_check.py).
+# style: direct (the usual wording) or indirect (no "bring/put/take X to Y" pattern; the mock parser fails these).
+#
+# The scene must match what the overhead camera sees during the run (objects.yaml, places.yaml).
+
+scene:
+  objects: {red_block: block, blue_block: block, green_block: block, tray: tray}
+  places: [home]
+
+requests:
+  # ---- 1 step --------------------------------------------------------------------------------------------
+  - {id: 1,  steps: 1, category: return,  style: direct,   text: "Go home.",
+     goal: "(robot-at home)"}
+  - {id: 2,  steps: 1, category: pick,    style: direct,   text: "Pick up the blue block.",
+     goal: "(holding blue_block)"}
+  - {id: 3,  steps: 1, category: go_to,   style: direct,   text: "Drive to the tray.",
+     goal: "(robot-at tray)"}
+  - {id: 4,  steps: 1, category: pick,    style: direct,   text: "Grab the green block.",
+     goal: "(holding green_block)"}
+  - {id: 5,  steps: 1, category: go_to,   style: indirect, text: "I want you over by the red block.",
+     goal: "(robot-at red_block)"}
+
+  # ---- 2 steps: one fetch (pick + place) -----------------------------------------------------------------
+  - {id: 6,  steps: 2, category: fetch,   style: direct,   text: "Bring the red block to the tray.",
+     goal: "(on red_block tray)"}
+  - {id: 7,  steps: 2, category: fetch,   style: direct,   text: "Put the blue block on the tray.",
+     goal: "(on blue_block tray)"}
+  - {id: 8,  steps: 2, category: fetch,   style: direct,   text: "Move the green block to the tray.",
+     goal: "(on green_block tray)"}
+  - {id: 9,  steps: 2, category: fetch,   style: direct,   text: "Take the red block home.",
+     goal: "(on red_block home)"}
+  - {id: 10, steps: 2, category: fetch,   style: indirect, text: "I need the blue block in the tray, please.",
+     goal: "(on blue_block tray)"}
+
+  # ---- 3 steps: fetch + return ---------------------------------------------------------------------------
+  - {id: 11, steps: 3, category: fetch_return, style: direct,   text: "Bring the red block to the tray, then come back.",
+     goal: "(and (on red_block tray) (robot-at home))"}
+  - {id: 12, steps: 3, category: fetch_return, style: direct,   text: "Put the green block on the tray and go home.",
+     goal: "(and (on green_block tray) (robot-at home))"}
+  - {id: 13, steps: 3, category: fetch_return, style: direct,   text: "Take the blue block home, then go to the tray.",
+     goal: "(and (on blue_block home) (robot-at tray))"}
+  - {id: 14, steps: 3, category: fetch_return, style: indirect, text: "Could you leave the green block at home and then wait next to the tray?",
+     goal: "(and (on green_block home) (robot-at tray))"}
+  - {id: 15, steps: 3, category: fetch_return, style: indirect, text: "When the red block is sitting in the tray, head back home.",
+     goal: "(and (on red_block tray) (robot-at home))"}
+
+  # ---- 4 steps: two objects ------------------------------------------------------------------------------
+  - {id: 16, steps: 4, category: two_objects, style: direct,   text: "Put the red block and the blue block on the tray.",
+     goal: "(and (on red_block tray) (on blue_block tray))"}
+  - {id: 17, steps: 4, category: two_objects, style: direct,   text: "Bring the green block to the tray, then bring the red block to the tray.",
+     goal: "(and (on green_block tray) (on red_block tray))"}
+  - {id: 18, steps: 4, category: two_objects, style: direct,   text: "Take the blue block home and put the red block on the tray.",
+     goal: "(and (on blue_block home) (on red_block tray))"}
+  - {id: 19, steps: 4, category: two_objects, style: indirect, text: "Tidy up: every block except the green one belongs in the tray.",
+     goal: "(and (on red_block tray) (on blue_block tray))"}
+  - {id: 20, steps: 4, category: two_objects, style: indirect, text: "The tray should end up with the blue and green blocks in it.",
+     goal: "(and (on blue_block tray) (on green_block tray))"}

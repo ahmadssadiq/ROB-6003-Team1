@@ -5,7 +5,7 @@ node around it. `ros2 launch roomrunner_bringup stubs.launch.py` runs a whole mi
 
 | Owner | Plain-Python logic (tests) | ROS nodes | Next steps |
 | --- | --- | --- | --- |
-| Ahmad (planning) | `astar.py`, `fsm.py`, `validator.py`, `llm_planner.py`, `pddl.py`, `mock_parser.py` | `path_planner`, `task_parser`, `mission_fsm` | move `mission_fsm` onto `fsm.MissionStateMachine` (RETRY handling, call `/refresh_map`); try `planner:=direct` and `llmp` with a key; E2 request set |
+| Ahmad (planning) | `astar.py`, `fsm.py`, `mission.py`, `validator.py`, `llm_planner.py`, `pddl.py`, `mock_parser.py` | `path_planner`, `task_parser`, `mission_fsm` (on `fsm.py` + `mission.py`: RETRY, localization watchdog, `/refresh_map`) | try `planner:=direct` and `llmp` with a key; run E2 with a key (see below); real-robot run |
 | Mourya (perception) | `overhead_geometry.py` (homography, occupancy), `overhead_camera.py` (camera pose, tags at their height), `overhead_pipeline.py` (one frame to objects, robot, grid), `synthetic.py` (test pictures) | `overhead_node`, `calibrate_overhead`, `overhead_debug`, `fake_overhead` | mount the camera and check its view covers the room (below); intrinsics; anchors 30 to 33; measure tag heights in `objects.yaml`; empty-floor image; tune the obstacle threshold with `overhead_debug` |
 | Mourya (localization) | `transform2d.py` (incl. `fit_rigid`), `pose_check.py` (fit `T_map_aruco`, PF vs overhead monitor) | `map_aruco_tf`, `aruco_map_publisher`, `pose_monitor`, `measure_t_map_aruco`, `fake_robot` | measure `T_map_aruco` with `measure_t_map_aruco` (4 to 6 spots); watch `/localization_check` during runs; then the EKF |
 | Mourya (control) | `controller.py` (incl. min speed, acceleration limit, overhead correction), `sim_base.py` (simulated base) | `waypoint_follower` (with overhead alignment) | tune offline with `python3 -m roomrunner_control.sim_base`, then on the real base: measure the motor deadband and set `min_speed`; check the stops with the overhead camera |
@@ -68,3 +68,17 @@ Placeholders to measure (all marked in their config files): `T_map_aruco.yaml`, 
    height, less for the hover phase. Keep `standoff` (robot.yaml) so the block lands near 0.22 to 0.26 m.
 5. **Tray:** `tray_slots` are drop spots in the tray tag's frame; a slot with another object within
    `slot_clearance` is skipped. `stub_fail_rate` (stub mode) makes picks miss to try the mission's RETRY.
+
+## Running E2 (language tasks)
+
+The 20 requests are in `experiments/e2_requests.yaml` (1 to 4 steps, five of each, direct and indirect wording),
+each with its goal as PDDL facts. A trial succeeds when the plan is valid and ends in exactly that goal
+(`roomrunner_planning/goal_check.py`). The scene there must match the room during the run.
+
+```bash
+python3 experiments/run_e2.py --planners mock direct llmp          # offline: planning only, key from .env
+python3 experiments/run_e2.py --ros --planners direct llmp --confirm   # on the launched system
+python3 experiments/analyze.py e2                                   # SR overall and by step count
+```
+
+The mock parser is the baseline: it solves the 14 direct requests and none of the 6 indirect ones.

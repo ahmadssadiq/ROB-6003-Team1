@@ -26,7 +26,8 @@ TRANSITIONS = {
     ("ALIGN", "aligned"): "MANIPULATE",
     ("ALIGN", "goal_reached"): "NEXT",      # a go_to step with nothing to pick or place
     ("ALIGN", "nav_failed"): "RETRY",
-    ("PICK", "picked"): "PLAN",
+    ("ALIGN", "localization_lost"): "RETRY",
+    ("PICK", "picked"): "NEXT",            # usually more steps (carry it somewhere); a lone pick is done
     ("PICK", "pick_failed"): "RETRY",
     ("PLACE", "placed"): "NEXT",
     ("PLACE", "place_failed"): "RETRY",
@@ -48,7 +49,7 @@ class MissionStateMachine:
 
     def handle(self, event, **info):
         """Apply one event and return the new state. `info` may carry holding=<object name> for 'picked',
-        and more_steps=True for 'placed' or 'goal_reached' when the request has further steps.
+        and more_steps=True for 'picked', 'placed' or 'goal_reached' when the request has further steps.
         Raises ValueError for an event that is not allowed in the current state."""
         if self.state == "RETRY":
             return self._retry(event)
