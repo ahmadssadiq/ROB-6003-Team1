@@ -3,7 +3,8 @@ whole pipeline can be tested on synthetic pictures (synthetic.py) and tried on s
 
     camera = OverheadCamera(...)                       # overhead_camera.py
     result = process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor)
-    result["objects"]   [{"name", "kind", "tag_id", "x", "y", "yaw"}, ...]   map frame, m and rad
+    result["objects"]   [{"name", "kind", "tag_id", "x", "y", "yaw", "height", "confidence"}, ...]   map frame,
+                        m and rad: tagged objects (tag_id >= 0) and colour cuboids (tag_id -1, colour_objects.py)
     result["robot"]     (x, y, yaw) of the robot-top tag, or None
     result["grid"]      int8 array, row = y, col = x: 0 free, 100 occupied, -1 not seen
     result["seen"]      sorted ids of every tag in the picture
@@ -15,6 +16,7 @@ import math
 import cv2
 import numpy as np
 
+from roomrunner_perception.colour_objects import find_colour_objects, foreground_mask
 from roomrunner_perception.overhead_geometry import obstacle_mask, occupancy_from_mask
 
 
@@ -73,9 +75,13 @@ def process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor=No
             robot = camera.tag_pose(corners, float(objects_cfg.get("robot_tag_height", 0.0)))
         elif tag_id in tags:
             info = tags[tag_id]
-            x, y, yaw = camera.tag_pose(corners, float(info.get("height", 0.0)))
+            height = float(info.get("height", 0.0))
+            x, y, yaw = camera.tag_pose(corners, height)
             objects.append({"name": info["name"], "kind": info["kind"], "tag_id": tag_id, "x": x, "y": y,
-                            "yaw": yaw})
+                            "yaw": yaw, "height": height, "confidence": 1.0})
+    if objects_cfg.get("colour_objects"):
+        foreground = foreground_mask(frame, empty_floor) if empty_floor is not None else None
+        objects += find_colour_objects(frame, camera, objects_cfg["colour_objects"], foreground)
 
     if empty_floor is not None:
         mask = obstacle_mask(frame, empty_floor)

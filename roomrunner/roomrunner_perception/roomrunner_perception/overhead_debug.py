@@ -42,9 +42,8 @@ def draw(frame, result, camera, objects_cfg, grid_cfg):
     for row, col in zip(*np.nonzero(result["grid"] == 100)):
         u, v = camera.to_pixel((origin[0] + (col + 0.5) * res, origin[1] + (row + 0.5) * res))
         cv2.circle(image, (int(u), int(v)), 3, (0, 0, 255), -1)
-    heights = {int(k): float(v.get("height", 0.0)) for k, v in objects_cfg["tags"].items()}
     for o in result["objects"]:
-        u, v = camera.to_pixel((o["x"], o["y"]), heights[o["tag_id"]])
+        u, v = camera.to_pixel((o["x"], o["y"]), o["height"])
         label = f'{o["name"]} ({o["x"]:.2f}, {o["y"]:.2f}) {math.degrees(o["yaw"]):.0f} deg'
         cv2.circle(image, (int(u), int(v)), 6, (0, 200, 0), 2)
         cv2.putText(image, label, (int(u) + 10, int(v) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 120, 0), 2)

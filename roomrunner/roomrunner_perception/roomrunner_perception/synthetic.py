@@ -2,7 +2,8 @@
 `overhead_debug --synthetic` to try the whole pipeline without a camera.
 
     K, rvec, tvec = looking_down(centre=(1.5, 0.0, 2.25))       # camera 2.25 m above (1.5, 0) in the map frame
-    image = render(K, rvec, tvec, tags=[Tag(10, 1.0, 0.5, z=0.05, yaw=0.3)], boxes=[(2.0, -1.0, 2.4, -0.6)])
+    image = render(K, rvec, tvec, tags=[Tag(10, 1.0, 0.5, z=0.05, yaw=0.3)], boxes=[(2.0, -1.0, 2.4, -0.6)],
+                   cuboids=[Cuboid(1.2, 0.3, yaw=0.4, colour=(0, 220, 230))])
 
 Map frame: x, y on the floor, z up (metres, radians). The tag's x axis points from its printed top-left to
 top-right corner and its y axis towards its top edge, the same convention as OverheadCamera.tag_pose.
@@ -27,6 +28,23 @@ class Tag:
     z: float = 0.0          # height of the tag above the floor (m)
     yaw: float = 0.0        # rad
     size: float = 0.05      # printed black square side (m)
+
+
+@dataclass
+class Cuboid:
+    """A coloured cuboid lying on the floor (colour_objects.py finds these)."""
+    x: float
+    y: float
+    yaw: float = 0.0                        # rad: direction of the long side
+    length: float = 0.064                   # m
+    width: float = 0.020
+    height: float = 0.014
+    colour: tuple = (0, 220, 230)           # BGR (this one is yellow)
+
+    def corners(self, z):
+        c, s = np.cos(self.yaw), np.sin(self.yaw)
+        a, b = self.length / 2, self.width / 2
+        return [(self.x + dx * c - dy * s, self.y + dx * s + dy * c, z) for dx, dy in [(-a, -b), (a, -b), (a, b), (-a, b)]]
 
 
 def looking_down(centre=(1.5, 0.0, 2.25), tilt=0.0, focal=1000.0, width=WIDTH, height=HEIGHT):
@@ -55,13 +73,19 @@ def tag_corners(tag, scale=1.0):
             for dx, dy in [(-h, h), (h, h), (h, -h), (-h, -h)]]
 
 
-def render(K, rvec, tvec, tags=(), boxes=(), width=WIDTH, height=HEIGHT, dictionary="DICT_4X4_50"):
-    """Picture of a grey floor with dark boxes (floor rectangles [x_min, y_min, x_max, y_max]) and tags
-    (each printed with a white border half its size wide)."""
+def render(K, rvec, tvec, tags=(), boxes=(), cuboids=(), width=WIDTH, height=HEIGHT, dictionary="DICT_4X4_50"):
+    """Picture of a grey floor with dark boxes (floor rectangles [x_min, y_min, x_max, y_max]), coloured
+    cuboids (top face in their colour, the visible sides darker) and tags (each printed with a white border
+    half its size wide)."""
     image = np.full((height, width, 3), FLOOR_GREY, np.uint8)
     for x0, y0, x1, y1 in boxes:
         corners = project(K, rvec, tvec, [(x0, y0, 0), (x1, y0, 0), (x1, y1, 0), (x0, y1, 0)])
         cv2.fillConvexPoly(image, np.round(corners).astype(np.int32), (BOX_GREY,) * 3)
+    for c in cuboids:
+        both = project(K, rvec, tvec, c.corners(0.0) + c.corners(c.height))
+        sides = tuple(int(0.7 * v) for v in c.colour)
+        cv2.fillConvexPoly(image, cv2.convexHull(np.round(both).astype(np.int32)), sides)
+        cv2.fillConvexPoly(image, np.round(both[4:]).astype(np.int32), tuple(int(v) for v in c.colour))
     aruco = cv2.aruco.getPredefinedDictionary(getattr(cv2.aruco, dictionary))
     side, border = 200, 50
     for tag in tags:

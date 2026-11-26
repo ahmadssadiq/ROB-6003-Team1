@@ -2,7 +2,8 @@
 
 Publishes (latched):
     occupancy_grid  nav_msgs/OccupancyGrid in the map frame (0 free, 100 occupied, -1 not seen)
-    objects         roomrunner_interfaces/ObjectPoseArray in the map frame: tagged blocks and tray
+    objects         roomrunner_interfaces/ObjectPoseArray in the map frame: tagged objects (tray) and the
+                    colour cuboids (tag_id -1)
     overhead_robot  geometry_msgs/PoseStamped in the map frame: the robot-top tag, if seen (E1 ground truth)
 Service:
     refresh_map     std_srvs/Trigger: take a frame now (the mission FSM calls it before planning and after
@@ -102,7 +103,7 @@ class OverheadNode(Node):
         objects = ObjectPoseArray()
         objects.header.stamp, objects.header.frame_id = stamp, "map"
         for o in result["objects"]:
-            obj = ObjectPose(name=o["name"], kind=o["kind"], tag_id=o["tag_id"], confidence=1.0)
+            obj = ObjectPose(name=o["name"], kind=o["kind"], tag_id=o["tag_id"], confidence=float(o["confidence"]))
             obj.pose.position.x, obj.pose.position.y = o["x"], o["y"]
             obj.pose.orientation.z, obj.pose.orientation.w = yaw_to_quaternion_zw(o["yaw"])
             objects.objects.append(obj)
