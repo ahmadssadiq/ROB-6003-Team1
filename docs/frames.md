@@ -26,7 +26,7 @@ image, y down). Units: metres and radians.
 
 | Transform | File | Status |
 | --- | --- | --- |
-| `map → aruco_map` | `roomrunner_bringup/config/T_map_aruco.yaml` | placeholder (identity) until measured |
+| `map → aruco_map` | `roomrunner_bringup/config/T_map_aruco.yaml` | placeholder (identity) until measured with `measure_t_map_aruco` |
 | `map → overhead_camera` | `roomrunner_bringup/config/overhead_camera.yaml` | placeholder until calibrated |
 | `base → arm_base` | `roomrunner_bringup/config/robot.yaml` | from the Assignment 03 model: shoulder pan at (0.067, 0, 0.084) m |
 | `base → camera_link` | `roomrunner_bringup/config/robot.yaml` | measured in Assignment 04 |
