@@ -3,7 +3,8 @@ whole pipeline can be tested on synthetic pictures (synthetic.py) and tried on s
 
     camera = OverheadCamera(...)                       # overhead_camera.py
     result = process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor)
-    result["objects"]   [{"name", "kind", "tag_id", "x", "y", "yaw"}, ...]   map frame, m and rad
+    result["objects"]   [{"name", "kind", "tag_id", "x", "y", "yaw", "height", "confidence"}, ...]   map frame,
+                        m and rad: tagged objects (tag_id >= 0) and colour cuboids (tag_id -1, colour_objects.py)
     result["robot"]     (x, y, yaw) of the robot-top tag, or None
     result["grid"]      int8 array, row = y, col = x: 0 free, 100 occupied, -1 not seen
     result["seen"]      sorted ids of every tag in the picture
@@ -15,6 +16,7 @@ import math
 import cv2
 import numpy as np
 
+from roomrunner_perception.colour_objects import find_colour_objects, foreground_mask
 from roomrunner_perception.overhead_geometry import obstacle_mask, occupancy_from_mask
 
 
@@ -51,15 +53,20 @@ def marker_image(dictionary, tag_id, side):
     return aruco.drawMarker(dictionary, tag_id, side)
 
 
-def clear_disc(grid, origin, resolution, x, y, radius):
-    """Mark the cells within radius (m) of map point (x, y) as free. Used for the robot's own footprint: the
-    robot is not in the empty-floor picture, so without this it would be an obstacle on its own start."""
+def mark_disc(grid, origin, resolution, x, y, radius, value):
+    """Set the cells within radius (m) of map point (x, y) to value."""
     rows, cols = grid.shape
     ys = origin[1] + (np.arange(rows) + 0.5) * resolution
     xs = origin[0] + (np.arange(cols) + 0.5) * resolution
     gx, gy = np.meshgrid(xs, ys)
-    grid[(gx - x) ** 2 + (gy - y) ** 2 <= radius ** 2] = 0
+    grid[(gx - x) ** 2 + (gy - y) ** 2 <= radius ** 2] = value
     return grid
+
+
+def clear_disc(grid, origin, resolution, x, y, radius):
+    """Mark the cells within radius (m) of map point (x, y) as free. Used for the robot's own footprint: the
+    robot is not in the empty-floor picture, so without this it would be an obstacle on its own start."""
+    return mark_disc(grid, origin, resolution, x, y, radius, 0)
 
 
 def process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor=None):
@@ -73,9 +80,13 @@ def process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor=No
             robot = camera.tag_pose(corners, float(objects_cfg.get("robot_tag_height", 0.0)))
         elif tag_id in tags:
             info = tags[tag_id]
-            x, y, yaw = camera.tag_pose(corners, float(info.get("height", 0.0)))
+            height = float(info.get("height", 0.0))
+            x, y, yaw = camera.tag_pose(corners, height)
             objects.append({"name": info["name"], "kind": info["kind"], "tag_id": tag_id, "x": x, "y": y,
-                            "yaw": yaw})
+                            "yaw": yaw, "height": height, "confidence": 1.0})
+    if objects_cfg.get("colour_objects"):
+        foreground = foreground_mask(frame, empty_floor) if empty_floor is not None else None
+        objects += find_colour_objects(frame, camera, objects_cfg["colour_objects"], foreground)
 
     if empty_floor is not None:
         mask = obstacle_mask(frame, empty_floor)
@@ -83,6 +94,12 @@ def process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor=No
         mask = np.zeros(frame.shape[:2], np.uint8)
     origin, resolution = grid_cfg["origin"], grid_cfg["resolution"]
     grid = occupancy_from_mask(mask, camera.H, origin, resolution, grid_cfg["width"], grid_cfg["height"])
+    # colour cuboids are too small for obstacle_mask, but the base must not drive over them: mark each one
+    # (half its length around its centre); the path planner grows obstacles by the robot's radius
+    for o in objects:
+        if o["tag_id"] == -1:
+            size = objects_cfg["colour_objects"][o["name"]]["size"]
+            mark_disc(grid, origin, resolution, o["x"], o["y"], max(max(size) / 2, resolution), 100)
     if robot is not None:
         clear_disc(grid, origin, resolution, robot[0], robot[1], float(objects_cfg.get("robot_clear_radius", 0.0)))
     return {"objects": objects, "robot": robot, "grid": grid, "seen": sorted(seen)}

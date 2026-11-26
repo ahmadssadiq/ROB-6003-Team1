@@ -1,12 +1,22 @@
-# Tagged objects the overhead camera reports (decisions.md 12). Tag id -> name used in requests, and kind.
-# height: height of the tag above the floor (m), so the overhead camera can place raised tags correctly
-# (overhead_camera.py). PLACEHOLDER heights: measure the printed objects and the robot, then update.
+# Objects the overhead camera reports (decisions.md 12), all in the map frame.
+#
+# tags: objects with an ArUco tag (tag id -> name used in requests, kind). height: the tag's height above the
+# floor (m), so the overhead camera places raised tags correctly (overhead_camera.py).
 tags:
-  10: {name: red_block,   kind: block, height: 0.05}     # PLACEHOLDER
-  11: {name: blue_block,  kind: block, height: 0.05}     # PLACEHOLDER
-  12: {name: green_block, kind: block, height: 0.05}     # PLACEHOLDER
-  20: {name: tray,        kind: tray,  height: 0.02}     # PLACEHOLDER
+  20: {name: tray, kind: tray, height: 0.02}             # PLACEHOLDER height
 robot_tag: 40                    # tag on top of the robot: checks T_map_aruco, ground truth for E1
 robot_tag_height: 0.30           # PLACEHOLDER: floor to the robot-top tag (m)
 robot_clear_radius: 0.30         # PLACEHOLDER: radius (m) around the robot tag cleared from the obstacle grid,
                                  # since the robot is not in the empty-floor picture; a bit more than the base
+
+# colour_objects: cuboids without tags, found by colour (colour_objects.py). One cuboid per colour; colours not
+# in the room are simply not reported. size: [length, width] (m) seen from above; height: top face (m).
+# HSV ranges in OpenCV units (hue 0..179, saturation and value 0..255); a hue range with low > high wraps
+# around 0 (red). PLACEHOLDER ranges: set them under the real lighting with overhead_colour_picker.
+colour_objects:
+  red_cuboid:    {kind: block, size: [0.064, 0.020], height: 0.014, hsv_low: [170, 100, 70], hsv_high: [8, 255, 255]}
+  yellow_cuboid: {kind: block, size: [0.064, 0.020], height: 0.014, hsv_low: [20, 100, 100], hsv_high: [34, 255, 255]}
+  green_cuboid:  {kind: block, size: [0.064, 0.020], height: 0.014, hsv_low: [45, 80, 60], hsv_high: [80, 255, 255]}
+  blue_cuboid:   {kind: block, size: [0.064, 0.020], height: 0.014, hsv_low: [100, 120, 60], hsv_high: [124, 255, 255]}
+  violet_cuboid: {kind: block, size: [0.064, 0.020], height: 0.014, hsv_low: [128, 60, 50], hsv_high: [160, 255, 255]}
+# Sizes: yellow is measured (6.4 x 2.0 x 1.4 cm); the others are PLACEHOLDERS with the same size until printed.

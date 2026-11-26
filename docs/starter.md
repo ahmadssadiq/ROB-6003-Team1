@@ -6,7 +6,7 @@ node around it. `ros2 launch roomrunner_bringup stubs.launch.py` runs a whole mi
 | Owner | Plain-Python logic (tests) | ROS nodes | Next steps |
 | --- | --- | --- | --- |
 | Ahmad (planning) | `astar.py`, `fsm.py`, `mission.py`, `validator.py`, `llm_planner.py`, `pddl.py`, `mock_parser.py` | `path_planner`, `task_parser`, `mission_fsm` (on `fsm.py` + `mission.py`: RETRY, localization watchdog, `/refresh_map`) | try `planner:=direct` and `llmp` with a key; run E2 with a key (see below); real-robot run |
-| Mourya (perception) | `overhead_geometry.py` (homography, occupancy), `overhead_camera.py` (camera pose, tags at their height), `overhead_pipeline.py` (one frame to objects, robot, grid), `synthetic.py` (test pictures) | `overhead_node`, `calibrate_overhead`, `overhead_debug`, `fake_overhead` | mount the camera and check its view covers the room (below); intrinsics; anchors 30 to 33; measure tag heights in `objects.yaml`; empty-floor image; tune the obstacle threshold with `overhead_debug` |
+| Mourya (perception) | `overhead_geometry.py` (homography, occupancy), `overhead_camera.py` (camera pose, tags at their height), `overhead_pipeline.py` (one frame to objects, robot, grid), `colour_objects.py` (untagged cuboids by colour), `synthetic.py` (test pictures) | `overhead_node`, `calibrate_overhead`, `overhead_debug`, `overhead_colour_picker`, `fake_overhead` | mount the camera and check its view covers the room (below); intrinsics; anchors 30 to 33; measure tag heights in `objects.yaml`; empty-floor image; tune the obstacle threshold with `overhead_debug` |
 | Mourya (localization) | `transform2d.py` (incl. `fit_rigid`), `pose_check.py` (fit `T_map_aruco`, PF vs overhead monitor) | `map_aruco_tf`, `aruco_map_publisher`, `pose_monitor`, `measure_t_map_aruco`, `fake_robot` | measure `T_map_aruco` with `measure_t_map_aruco` (4 to 6 spots); watch `/localization_check` during runs; then the EKF |
 | Mourya (control) | `controller.py` (incl. min speed, acceleration limit, overhead correction), `sim_base.py` (simulated base) | `waypoint_follower` (with overhead alignment) | tune offline with `python3 -m roomrunner_control.sim_base`, then on the real base: measure the motor deadband and set `min_speed`; check the stops with the overhead camera |
 | Sarvanagupta (manipulation) | `grasp.py` (map to base, reach, phases, IK check, holding check, tray slots, grasp offset) | `pick_place_server` (stub / real via the Assignment 03 IK node), `try_pick` | tune `grasp_z`, `grasp_offset`, gripper values and `holding_min_gripper` with `try_pick`; measure grasp heights and gripper values (`manipulation.yaml`); scripted pick with the base stopped; demonstrations and ACT (`roomrunner_manipulation/il/README.md`) |
@@ -26,7 +26,12 @@ Placeholders to measure (all marked in their config files): `T_map_aruco.yaml`, 
 3. **Anchors** 30 to 33 flat on the floor, centres tape-measured from below wall marker 2, then
    `ros2 run roomrunner_perception calibrate_overhead --config <overhead_camera.yaml>`. It prints the camera
    height (compare with a tape) and the reprojection error (under about 3 px; more means a bad measurement).
-4. **Check** with `ros2 run roomrunner_perception overhead_debug --camera`: tape-measure one block and compare,
+4. **Colour cuboids** (the objects have no tags; `colour_objects.py`): put every cuboid in view, then
+   `ros2 run roomrunner_perception overhead_colour_picker --camera --write` and drag a box inside each top
+   face. It warns when two colours overlap in hue (pick colours far apart: red, yellow, green, blue, violet)
+   and saves `overhead_colours.png` with what it finds. Measure each cuboid's `size` and `height` in
+   `objects.yaml`. The same room light as on the day of the runs.
+5. **Check** with `ros2 run roomrunner_perception overhead_debug --camera`: tape-measure one block and compare,
    obstacles red, the robot not red. `overhead_debug --synthetic` shows what a good result looks like.
 
 ## Localization: T_map_aruco and the overhead check

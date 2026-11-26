@@ -15,9 +15,10 @@ Agreed decisions, so the whole team builds against the same assumptions. Change 
 | 9 | Overhead camera: wide-angle 1080p USB webcam, 2 to 2.5 m above the floor, looking straight down | a 50 mm tag is still about 20 to 25 px wide from 2.5 m |
 | 10 | Overhead calibration: intrinsics with the Assignment 04 checkerboard script; extrinsics from 4 ArUco anchor tags on the floor whose positions are tape-measured from wall marker 2. The overhead map frame is then the wall-marker frame, so `T_map_aruco` is the identity, measured | one frame for robot, objects and obstacles, no separate registration |
 | 11 | A tag on top of the robot checks the registration (overhead pose against PF pose) and gives E1 its overhead-camera ground truth | |
-| 12 | Tags: dictionary `DICT_4X4_50` everywhere. Ids: walls 1, 2, 4, 7, 8 (206.5 mm); blocks 10 to 19 (50 mm); tray 20 to 29 (100 mm); floor anchors 30 to 33 (150 mm); robot top 40 (100 mm) | separate id ranges; the PF ignores ids that are not in its map |
+| 12 | Tags: dictionary `DICT_4X4_50` everywhere. Ids: walls 1, 2, 4, 7, 8 (206.5 mm); blocks 10 to 19 (50 mm, not used: see 15); tray 20 to 29 (100 mm); floor anchors 30 to 33 (150 mm); robot top 40 (100 mm) | separate id ranges; the PF ignores ids that are not in its map |
 | 13 | LLM: OpenAI and Anthropic both supported behind one interface, chosen by `ROOMRUNNER_LLM_PROVIDER` in `.env`; mock mode is the default | use whichever the team has credits for |
 | 14 | Simulation: a `roomrunner_sim` package that reuses the course simulator (wall markers, tagged cubes, tray, overhead camera) without editing course code | course code stays untouched |
+| 15 | The objects are 3 to 5 cuboids of different colours, without tags. The overhead camera finds them by colour (HSV range, size check, top-face plane, visible-side correction; `colour_objects.py`) to within about 1 cm, enough to drive there; ACT does the grasp from the robot's cameras | a tag small enough for a 2 cm wide cuboid is about 8 px from 2.25 m, too small to read; the colours are distinct |
 
 ## Open
 
