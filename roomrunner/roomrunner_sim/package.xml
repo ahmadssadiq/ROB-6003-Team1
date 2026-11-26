@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>roomrunner_sim</name>
+  <version>0.1.0</version>
+  <description>The RoomRunner room in the course MuJoCo simulator, with a simulated overhead camera</description>
+  <maintainer email="asadiq456@outlook.com">Aditya Mourya</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>lekiwi_ros</exec_depend>
+  <exec_depend>roomrunner_perception</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

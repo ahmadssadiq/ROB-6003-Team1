@@ -1,0 +1,35 @@
+# The simulated RoomRunner room (roomrunner_sim), inside the course simulator's 6 m x 5 m ArUco room
+# (Assignment 04 sim_room_map.yaml: wall markers 10 to 19, map origin in the room's middle).
+# Map frame = the simulator's world frame = the wall-marker frame, so T_map_aruco is exactly the identity.
+# Units: metres, radians (yaw), degrees only where the name says so.
+
+start_pose: [-1.4, -1.0, -90.0]        # robot start [x, y, yaw_deg], facing wall markers 16 and 17 (sim_node units)
+
+overhead_camera:                       # straight down over the arena; 1280 x 960 is MuJoCo's largest picture here
+  position: [0.0, 0.0, 2.5]
+  width: 1280
+  height: 960
+  fovy_deg: 61.93                      # sees 4.0 m x 3.0 m of floor from 2.5 m
+  period: 0.5                          # s between pictures on overhead/image
+
+grid:                                  # occupancy grid: the floor the overhead camera sees
+  origin: [-2.0, -1.5]
+  width: 4.0
+  height: 3.0
+  resolution: 0.05
+
+obstacles:                             # boxes standing on the floor [x_min, y_min, x_max, y_max, height]
+  - [-0.45, -1.5, -0.25, 0.1, 0.12]    # a low partition from the bottom of the arena
+  - [0.70, 0.55, 1.10, 0.95, 0.12]     # a box
+# 0.12 m high: below the wall markers (0.15 to 0.35 m), so the front camera still sees them over the
+# obstacles, and below the arm, which stays stretched out in front in the simulator (0.41 m from the centre)
+
+cuboids:                               # which colour cuboids of objects.yaml are in the room, and where [x, y, yaw]
+  red_cuboid: [1.2, -0.6, 0.3]
+  blue_cuboid: [-1.2, 0.8, 1.2]
+  yellow_cuboid: [0.3, 1.0, 2.0]
+
+tray: {position: [1.5, 0.9], yaw: 0.0, size: [0.20, 0.15, 0.03], tag_id: 20, tag_size: 0.08}
+
+robot_tag: {id: 40, size: 0.10, offset: [-0.08, 0.0], height: 0.235}   # on the robot's back, offset in the base frame
+robot_clear_radius: 0.45               # the outstretched arm reaches 0.41 m from the base centre
