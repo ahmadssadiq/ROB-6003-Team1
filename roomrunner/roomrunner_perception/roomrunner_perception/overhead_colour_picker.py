@@ -53,7 +53,7 @@ def main():
     objects_cfg = yaml.safe_load(Path(args.objects).read_text())
     cfg = yaml.safe_load(Path(args.config).read_text())
 
-    from roomrunner_perception.overhead_node import camera_from_config, load_intrinsics
+    from roomrunner_perception.overhead_camera import camera_from_config, load_intrinsics
     K, dist = load_intrinsics(cfg.get("intrinsics_file", ""))
     if args.camera:
         from roomrunner_perception.calibrate_overhead import grab

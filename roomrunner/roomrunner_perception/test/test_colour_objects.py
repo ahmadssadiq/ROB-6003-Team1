@@ -133,3 +133,13 @@ def test_cuboids_are_marked_in_the_grid(camera_setup):
     x, y, _ = SCENE["blue_cuboid"]
     row, col = int((y + 2.0) / 0.05), int((x + 0.5) / 0.05)
     assert grid[row, col] == 100 and grid[row, col + 3] == 0
+
+
+def test_coloured_parts_on_the_robot_are_ignored(camera_setup):
+    K, rvec, tvec, camera = camera_setup
+    on_robot = Cuboid(0.6, -0.8, colour=BGR["red_cuboid"])            # e.g. a red motor cover next to the robot tag
+    image = render(K, rvec, tvec, tags=[Tag(40, 0.6, -0.8, z=0.30, size=0.10)], cuboids=[on_robot] + cuboids(["red_cuboid"]))
+    grid = {"origin": [-0.5, -2.0], "width": 4.0, "height": 4.0, "resolution": 0.05}
+    result = process_frame(image, camera, make_detector(), OBJECTS_CFG, grid)
+    red = [o for o in result["objects"] if o["name"] == "red_cuboid"]
+    assert len(red) == 1 and math.hypot(red[0]["x"] - SCENE["red_cuboid"][0], red[0]["y"] - SCENE["red_cuboid"][1]) < 0.005

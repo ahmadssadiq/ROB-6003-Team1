@@ -78,6 +78,14 @@ def base_from_tag(tag_pose, offset):
     return x - math.cos(yaw) * dx + math.sin(yaw) * dy, y - math.sin(yaw) * dx - math.cos(yaw) * dy, yaw
 
 
+def robot_xy(robot, objects_cfg):
+    """Where to ignore colour blobs: the robot's own coloured parts (and a cuboid it holds) are not objects
+    on the floor. Returns ((x, y), radius) or None."""
+    if robot is None:
+        return None
+    return (robot[0], robot[1]), float(objects_cfg.get("robot_colour_radius", 0.0))
+
+
 def process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor=None):
     tags = {int(k): v for k, v in objects_cfg["tags"].items()}
     robot_tag = int(objects_cfg["robot_tag"])
@@ -96,7 +104,8 @@ def process_frame(frame, camera, detector, objects_cfg, grid_cfg, empty_floor=No
                             "yaw": yaw, "height": height, "confidence": 1.0})
     if objects_cfg.get("colour_objects"):
         foreground = foreground_mask(frame, empty_floor) if empty_floor is not None else None
-        objects += find_colour_objects(frame, camera, objects_cfg["colour_objects"], foreground)
+        found = find_colour_objects(frame, camera, objects_cfg["colour_objects"], foreground, robot_xy(robot, objects_cfg))
+        objects += found
 
     if empty_floor is not None:
         mask = obstacle_mask(frame, empty_floor)

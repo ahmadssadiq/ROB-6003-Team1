@@ -17,19 +17,12 @@ import cv2
 import numpy as np
 import yaml
 
+from roomrunner_perception.colour_objects import middle_colour
 from roomrunner_perception.overhead_camera import OverheadCamera
 from roomrunner_perception.overhead_pipeline import make_detector, process_frame
 from roomrunner_perception.synthetic import Cuboid, Tag, looking_down, render
 
 CONFIG = Path(__file__).resolve().parents[2] / "roomrunner_bringup" / "config"
-
-
-def middle_colour(spec):
-    """BGR colour in the middle of a colour object's HSV range (hue ranges may wrap around 0)."""
-    (h0, s0, v0), (h1, s1, v1) = spec["hsv_low"], spec["hsv_high"]
-    hue = ((h0 + ((h1 - h0) % 180) / 2) % 180)
-    hsv = np.uint8([[[hue, (s0 + s1) / 2, (v0 + v1) / 2]]])
-    return tuple(int(c) for c in cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0, 0])
 
 
 def synthetic_scene(objects_cfg):
@@ -88,7 +81,7 @@ def main():
         grid_cfg = {"origin": [-0.5, -2.0], "width": 4.0, "height": 4.0, "resolution": 0.05}
     else:
         from roomrunner_perception.calibrate_overhead import grab          # needs a calibrated config
-        from roomrunner_perception.overhead_node import camera_from_config, load_intrinsics
+        from roomrunner_perception.overhead_camera import camera_from_config, load_intrinsics
         if not cfg.get("calibrated"):
             raise SystemExit("The config is not calibrated yet: run calibrate_overhead first (or use --synthetic).")
         K, dist = load_intrinsics(cfg.get("intrinsics_file", ""))

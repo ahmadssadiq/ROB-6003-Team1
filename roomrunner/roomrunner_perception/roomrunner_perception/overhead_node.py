@@ -33,29 +33,10 @@ from rclpy.qos import DurabilityPolicy, QoSProfile
 from std_srvs.srv import Trigger
 
 from roomrunner_interfaces.msg import ObjectPose, ObjectPoseArray
-from roomrunner_perception.overhead_camera import OverheadCamera
+from roomrunner_perception.overhead_camera import camera_from_config, load_intrinsics
 from roomrunner_perception.overhead_pipeline import make_detector, process_frame, yaw_to_quaternion_zw
 
 LATCHED = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
-
-
-def load_intrinsics(path):
-    """camera_matrix and distortion from an Assignment 04 style calibration file, or (None, None)."""
-    if not path:
-        return None, None
-    with open(path) as f:
-        data = yaml.safe_load(f)
-    K = np.array(data["camera_matrix"]["data"], float).reshape(3, 3)
-    return K, np.array(data["distortion_coefficients"]["data"], float)
-
-
-def camera_from_config(cfg, K):
-    """OverheadCamera from overhead_camera.yaml: the camera pose when calibration found one (needs the
-    intrinsics), otherwise the floor homography."""
-    pose = cfg.get("camera_pose") or {}
-    if K is not None and pose.get("rvec"):
-        return OverheadCamera(K=K, rvec=pose["rvec"], tvec=pose["tvec"])
-    return OverheadCamera(H=np.array(cfg["homography"], float))
 
 
 class OverheadNode(Node):
@@ -75,7 +56,8 @@ class OverheadNode(Node):
         if not self.camera.has_pose:
             self.get_logger().warn("No intrinsics/camera pose: tag heights are ignored, so raised tags (robot, "
                                    "blocks) are placed too far from the centre of the image.")
-        self.empty = cv2.imread(self.cfg["empty_floor_image"]) if self.cfg.get("empty_floor_image") else None
+        self.empty = None
+        self.load_empty_floor()
         self.detector = make_detector(self.cfg.get("dictionary", "DICT_4X4_50"))
 
         self.image_topic = self.get_parameter("image_topic").value
@@ -91,6 +73,15 @@ class OverheadNode(Node):
         self.create_timer(float(self.cfg.get("capture_period", 10.0)), self.on_timer, callback_group=group)
         if not self.image_topic:
             self.capture()
+
+    def load_empty_floor(self):
+        """The empty-floor picture, once it exists (the simulator writes its own a moment after it starts)."""
+        path = self.cfg.get("empty_floor_image")
+        if path and self.empty is None:
+            self.empty = cv2.imread(path)
+            if self.empty is None:
+                self.get_logger().warn(f"No empty-floor picture at {path} yet: no obstacles until there is one.",
+                                       throttle_duration_sec=30.0)
 
     def on_image(self, msg):
         frame = np.frombuffer(msg.data, np.uint8).reshape(msg.height, msg.width, 3)
@@ -133,6 +124,7 @@ class OverheadNode(Node):
         return response
 
     def capture(self):
+        self.load_empty_floor()
         frame = self.grab()
         result = process_frame(frame, self.camera, self.detector, self.objects_cfg, self.cfg["grid"], self.empty)
         stamp = self.get_clock().now().to_msg()

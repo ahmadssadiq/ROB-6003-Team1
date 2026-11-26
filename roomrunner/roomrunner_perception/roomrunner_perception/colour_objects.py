@@ -88,8 +88,9 @@ def silhouette(camera, x, y, yaw, spec):
     return area, (cx - x, cy - y)
 
 
-def find_colour_objects(frame_bgr, camera, specs, foreground=None, min_area=0.5, max_area=1.8):
-    """Every colour object found in the picture (at most one per name). specs: objects.yaml colour_objects."""
+def find_colour_objects(frame_bgr, camera, specs, foreground=None, ignore=None, min_area=0.5, max_area=1.8):
+    """Every colour object found in the picture (at most one per name). specs: objects.yaml colour_objects.
+    ignore: ((x, y), radius) of a disc on the floor whose blobs are skipped (the robot)."""
     hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
     kernel = np.ones((3, 3), np.uint8)
     found = []
@@ -106,6 +107,8 @@ def find_colour_objects(frame_bgr, camera, specs, foreground=None, min_area=0.5,
                 continue
             points = np.array([camera.to_map(p, height) for p in contour.reshape(-1, 2)])
             area, (x, y) = polygon_area_centroid(points)
+            if ignore is not None and math.dist((x, y), ignore[0]) < ignore[1]:
+                continue
             if not min_area <= area / expected <= 2 * max_area:       # far off before the correction: skip
                 continue
             yaw = long_side_yaw(points, symmetry(spec))
@@ -137,3 +140,11 @@ def suggest_hsv_range(hsv_pixels, hue_margin=8, min_saturation=60, min_value=50)
     low_v = max(min_value, int(np.percentile(p[:, 2], 5) * 0.6))
     low_h, high_h = int(round(centre - margin)) % 180, int(round(centre + margin)) % 180
     return [low_h, low_s, low_v], [high_h, 255, 255]
+
+
+def middle_colour(spec):
+    """BGR colour in the middle of a colour object's HSV range (hue ranges may wrap around 0)."""
+    (h0, s0, v0), (h1, s1, v1) = spec["hsv_low"], spec["hsv_high"]
+    hue = ((h0 + ((h1 - h0) % 180) / 2) % 180)
+    hsv = np.uint8([[[hue, (s0 + s1) / 2, (v0 + v1) / 2]]])
+    return tuple(int(c) for c in cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0, 0])
