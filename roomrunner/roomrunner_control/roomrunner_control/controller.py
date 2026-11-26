@@ -43,3 +43,37 @@ def remaining_distance(position, points, index):
     """Distance to the current waypoint plus the rest of the path after it."""
     return math.dist(position, points[index]) + sum(math.dist(points[i], points[i + 1])
                                                     for i in range(index, len(points) - 1))
+
+
+def with_min_speed(command, min_speed):
+    """Raise a small, non-zero drive command to min_speed (same direction). The motors do not move below a
+    certain speed, so without this the robot can stall just short of the goal, outside the tolerance."""
+    forward, left, turn = command
+    speed = math.hypot(forward, left)
+    if 1e-9 < speed < min_speed:
+        forward, left = forward * min_speed / speed, left * min_speed / speed
+    return forward, left, turn
+
+
+def limit_acceleration(previous, command, max_accel, max_turn_accel, dt):
+    """Change the (forward, left, turn) command by at most max_accel (m/s^2) and max_turn_accel (rad/s^2)
+    per step of dt seconds. Smooth starts and stops slip less, so odometry stays better."""
+    def step(old, new, limit):
+        return old + max(-limit * dt, min(limit * dt, new - old))
+    (f0, l0, t0), (f1, l1, t1) = previous, command
+    df, dl = f1 - f0, l1 - l0
+    change = math.hypot(df, dl)
+    if change > max_accel * dt:                      # scale the linear change, keep its direction
+        df, dl = df * max_accel * dt / change, dl * max_accel * dt / change
+    return f0 + df, l0 + dl, step(t0, t1, max_turn_accel)
+
+
+def overhead_correction(goal, goal_yaw, pf_pose, overhead_pose):
+    """Goal to drive to (in the filter's map pose) so that the robot ends at `goal` as the overhead camera
+    sees it. Both poses are taken with the robot standing still; their difference is the filter's local error:
+        corrected goal = goal + (pf - overhead),   corrected yaw = goal_yaw + (pf_yaw - overhead_yaw)
+    Returns ((x, y), yaw, error), error = the overhead camera's distance (m) from the robot to the goal."""
+    dx, dy = pf_pose[0] - overhead_pose[0], pf_pose[1] - overhead_pose[1]
+    dyaw = wrap(pf_pose[2] - overhead_pose[2])
+    error = math.dist(overhead_pose[:2], goal)
+    return (goal[0] + dx, goal[1] + dy), wrap(goal_yaw + dyaw), error
