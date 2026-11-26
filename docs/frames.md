@@ -6,7 +6,7 @@ image, y down). Units: metres and radians.
 | Frame | Origin and axes | Parent | Transform published by | Where the numbers come from |
 | --- | --- | --- | --- | --- |
 | `map` | planning frame: a fixed point on the floor seen by the overhead camera; x, y on the floor, z up. The occupancy grid and object poses are in this frame | (root) | | chosen when the overhead camera is calibrated |
-| `overhead_camera` | optical frame of the overhead camera | `map` | static, `roomrunner_bringup` launch | `config/overhead_camera.yaml`, from `calibrate_overhead.py` |
+| `overhead_camera` | optical frame of the overhead camera (OpenCV: x right, y down, z along the view) | `map` | static, `roomrunner_bringup` launch | `camera_pose` in `config/overhead_camera.yaml`, from `calibrate_overhead.py`: X_camera = R X_map + t, R = Rodrigues(rvec); see `overhead_camera.py` |
 | `aruco_map` | Assignment 04 room map: origin on the floor below wall marker 2, x out of its wall into the room | `map` | static, `map_aruco_tf` | `config/T_map_aruco.yaml` (x, y, yaw), measured once |
 | `marker_<id>` | a wall marker where the map says it is | `aruco_map` | static, `aruco_map_publisher` | `classroom_map.yaml` (Assignment 04) |
 | `odom` | where odometry started | `aruco_map` | `localization_node` (A04), the particle filter's correction | particle filter |
@@ -26,7 +26,7 @@ image, y down). Units: metres and radians.
 
 | Transform | File | Status |
 | --- | --- | --- |
-| `map → aruco_map` | `roomrunner_bringup/config/T_map_aruco.yaml` | placeholder (identity) until measured |
+| `map → aruco_map` | `roomrunner_bringup/config/T_map_aruco.yaml` | placeholder (identity) until measured with `measure_t_map_aruco` |
 | `map → overhead_camera` | `roomrunner_bringup/config/overhead_camera.yaml` | placeholder until calibrated |
 | `base → arm_base` | `roomrunner_bringup/config/robot.yaml` | from the Assignment 03 model: shoulder pan at (0.067, 0, 0.084) m |
 | `base → camera_link` | `roomrunner_bringup/config/robot.yaml` | measured in Assignment 04 |

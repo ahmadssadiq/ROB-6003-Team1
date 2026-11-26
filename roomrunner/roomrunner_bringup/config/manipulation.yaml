@@ -9,4 +9,17 @@ gripper_closed: 0.0
 shoulder: [0.06715, 0.0]   # shoulder pan axis in the base frame (Assignment 03 arm model)
 min_reach: 0.12
 max_reach: 0.30
-settle_time: 2.0       # s to wait after each target for the arm to get there
+grasp_offset: [0.0, 0.0]   # PLACEHOLDER (radial, sideways) m: fingertip target shift so the block ends up
+                           # between the jaws (grasp.with_grasp_offset); measure with try_pick
+settle_time: 4.0       # s at most to wait for the arm to reach each target (it goes on earlier once there)
+joint_tolerance: 3.0   # deg: the arm counts as there when all 5 joints are this close to the command
+ik_reply_timeout: 1.0  # s: no /arm_commands from the IK node by then means it refused the target
+gripper_settle: 0.5    # s for the jaws after a gripper change
+holding_min_gripper: 5.0   # PLACEHOLDER %: after closing on a block the gripper reads at least this much more
+                           # than gripper_closed; closed all the way means the block was missed
+tray_slots:            # PLACEHOLDER: drop spots in the tray's own frame (m, x along the tray tag's x axis)
+  - [-0.04, -0.04]
+  - [0.04, -0.04]
+  - [-0.04, 0.04]
+  - [0.04, 0.04]
+slot_clearance: 0.04   # m: a slot is taken when another object is closer than this
