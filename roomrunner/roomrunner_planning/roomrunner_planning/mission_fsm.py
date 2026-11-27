@@ -7,6 +7,7 @@ Subscribes:
     task_spec       roomrunner_interfaces/TaskSpec
     objects         roomrunner_interfaces/ObjectPoseArray (map frame)
     robot_pose      geometry_msgs/PoseStamped (map frame)
+    occupancy_grid  nav_msgs/OccupancyGrid (map frame), for the A* reachability check before a mission starts
 Publishes:
     mission_status  roomrunner_interfaces/MissionStatus, on every state change and once a second
     planned_path    nav_msgs/Path (map frame), the path of the current leg
@@ -21,6 +22,7 @@ Parameters:
     position_tolerance  m (0.03)        yaw_tolerance  rad (0.05)
     max_retries         retries per mission after a failed leg (2)
     pose_timeout        s without robot_pose during navigation before localization counts as lost (2.0)
+    robot_radius        m: obstacles grown by this much in the reachability check, as in path_planner (0.20)
 """
 import math
 import threading
@@ -29,7 +31,7 @@ import time
 import rclpy
 import yaml
 from geometry_msgs.msg import PoseStamped
-from nav_msgs.msg import Path
+from nav_msgs.msg import OccupancyGrid, Path
 from rclpy.action import ActionClient
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
@@ -42,6 +44,7 @@ from roomrunner_interfaces.msg import MissionStatus, ObjectPoseArray, TaskSpec
 from roomrunner_interfaces.srv import PlanPath
 from roomrunner_planning.fsm import MissionStateMachine
 from roomrunner_planning.mission import run_mission
+from roomrunner_planning.reachability import Grid
 from roomrunner_planning.validator import validate
 
 
@@ -83,7 +86,8 @@ class MissionFSM(Node):
     def __init__(self):
         super().__init__("mission_fsm")
         for name, default in (("places_file", ""), ("standoff", 0.30), ("position_tolerance", 0.03),
-                              ("yaw_tolerance", 0.05), ("max_retries", 2), ("pose_timeout", 2.0)):
+                              ("yaw_tolerance", 0.05), ("max_retries", 2), ("pose_timeout", 2.0),
+                              ("robot_radius", 0.20)):
             self.declare_parameter(name, default)
         self.places = {}
         if self.get_parameter("places_file").value:
@@ -91,6 +95,7 @@ class MissionFSM(Node):
                 self.places = yaml.safe_load(f).get("places", {})
 
         self.objects, self.robot, self.robot_time = {}, None, 0.0
+        self.grid = None
         self.path = None
         self.state, self.detail, self.leg, self.busy = "IDLE", "", -1, False
         group = ReentrantCallbackGroup()
@@ -98,6 +103,7 @@ class MissionFSM(Node):
         self.create_subscription(TaskSpec, "task_spec", self.on_task, 10, callback_group=group)
         self.create_subscription(ObjectPoseArray, "objects", self.on_objects, latched, callback_group=group)
         self.create_subscription(PoseStamped, "robot_pose", self.on_pose, 10, callback_group=group)
+        self.create_subscription(OccupancyGrid, "occupancy_grid", self.on_grid, latched, callback_group=group)
         self.status_pub = self.create_publisher(MissionStatus, "mission_status", 10)
         self.path_pub = self.create_publisher(Path, "planned_path", 10)
         self.refresh_client = self.create_client(Trigger, "refresh_map", callback_group=group)
@@ -110,6 +116,12 @@ class MissionFSM(Node):
     # ---- inputs and status ---------------------------------------------------------------------
     def on_objects(self, msg):
         self.objects = {o.name: o for o in msg.objects}
+
+    def on_grid(self, msg):
+        info = msg.info
+        self.grid = Grid.from_occupancy(msg.data, info.width, info.height, info.resolution,
+                                        (info.origin.position.x, info.origin.position.y),
+                                        self.get_parameter("robot_radius").value)
 
     def on_pose(self, msg):
         self.robot = (msg.pose.position.x, msg.pose.position.y, yaw_of(msg.pose))
@@ -156,7 +168,12 @@ class MissionFSM(Node):
 
     def check(self, steps):
         kinds = {name: obj.kind for name, obj in self.objects.items()}
-        return validate(steps, kinds, set(self.places))
+        reachable = None
+        if self.grid is not None and self.robot is not None:   # otherwise planning reports a missing path later
+            positions = {name: (p["x"], p["y"]) for name, p in self.places.items()}
+            positions.update({name: (o.pose.position.x, o.pose.position.y) for name, o in self.objects.items()})
+            reachable = self.grid.reachable_function(self.robot[:2], positions)
+        return validate(steps, kinds, set(self.places), reachable)
 
     def target_pose(self, name):
         if name in self.objects:
