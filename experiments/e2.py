@@ -16,6 +16,7 @@ from roomrunner_planning import llm_planner, pddl  # noqa: E402
 from roomrunner_planning.goal_check import achieves  # noqa: E402
 from roomrunner_planning.mission import split_legs  # noqa: E402
 from roomrunner_planning.mock_parser import parse as mock_parse  # noqa: E402
+from roomrunner_planning.names import resolve_goal, resolve_steps  # noqa: E402
 from roomrunner_planning.validator import validate  # noqa: E402
 
 REQUESTS_FILE = Path(__file__).resolve().parent / "e2_requests.yaml"
@@ -25,12 +26,12 @@ COLUMNS = ["id", "text", "steps", "category", "style", "planner", "valid", "repl
 
 def load_requests(path=REQUESTS_FILE):
     """Returns (scene, requests). scene = {"objects": {name: kind}, "places": set}; every request gets its goal
-    parsed into facts under "goal_facts"."""
+    parsed into facts under "goal_facts", with its names matched to the scene ("red_block" -> "red_cuboid")."""
     data = yaml.safe_load(Path(path).read_text())
     scene = {"objects": dict(data["scene"]["objects"]), "places": set(data["scene"]["places"])}
     requests = data["requests"]
     for r in requests:
-        r["goal_facts"] = pddl.parse_goal(r["goal"])
+        r["goal_facts"] = resolve_goal(pddl.parse_goal(r["goal"]), set(scene["objects"]) | scene["places"])
     return scene, requests
 
 
@@ -51,7 +52,7 @@ def offline_trial(request, scene, planner, llm=None, max_replans=3):
     start = time.monotonic()
     try:
         if planner == "mock":
-            plan = mock_parse(request["text"])
+            plan = resolve_steps(mock_parse(request["text"]), set(scene["objects"]) | scene["places"])
             errors = validate(plan, scene["objects"], scene["places"])
             if errors:
                 raise ValueError("; ".join(errors))

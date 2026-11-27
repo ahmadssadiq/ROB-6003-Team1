@@ -5,10 +5,11 @@
 # when it is valid AND ends in exactly this state (roomrunner_planning/goal_check.py).
 # style: direct (the usual wording) or indirect (no "bring/put/take X to Y" pattern; the mock parser fails these).
 #
-# The scene must match what the overhead camera sees during the run (objects.yaml, places.yaml).
+# The scene must match what the overhead camera sees during the run (objects.yaml, places.yaml). The requests
+# and goals say "red block"; names.py matches that to the camera's "red_cuboid" (decision 15).
 
 scene:
-  objects: {red_block: block, blue_block: block, green_block: block, tray: tray}
+  objects: {red_cuboid: block, blue_cuboid: block, green_cuboid: block, tray: tray}
   places: [home]
 
 requests:

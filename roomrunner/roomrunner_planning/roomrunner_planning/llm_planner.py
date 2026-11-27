@@ -17,6 +17,7 @@ import re
 
 from roomrunner_planning import pddl
 from roomrunner_planning.mock_parser import parse as mock_parse
+from roomrunner_planning.names import resolve_goal, resolve_steps
 from roomrunner_planning.validator import validate
 
 SKILLS_TEXT = """The robot has three skills:
@@ -56,16 +57,18 @@ def parse_steps_json(text):
 
 def plan(request, objects, places, llm, mode="direct", reachable=None, max_replans=3):
     """Ask the LLM for a plan, validate it, and send the errors back until it is valid.
+    Object names are matched to the scene first (names.py: "red_block" -> "red_cuboid").
     Returns (steps, replans). Raises ValueError if no valid plan is found."""
     messages = direct_messages(request, objects, places) if mode == "direct" else llmp_messages(request, objects, places)
     errors = []
     for attempt in range(max_replans + 1):
         answer = llm(messages)
         try:
+            known = set(objects) | set(places)
             if mode == "direct":
-                steps = parse_steps_json(answer)
+                steps = resolve_steps(parse_steps_json(answer), known)
             else:
-                steps = pddl.solve(pddl.parse_goal(answer), objects, places)
+                steps = pddl.solve(resolve_goal(pddl.parse_goal(answer), known), objects, places)
             errors = validate(steps, objects, places, reachable)
         except (ValueError, KeyError, TypeError) as error:
             errors = [f"could not use the answer: {error}"]
